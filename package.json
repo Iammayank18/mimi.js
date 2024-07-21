@@ -2,8 +2,11 @@
   "name": "mimi.js",
   "version": "1.0.1",
   "description": "A lightweight api development tool",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "commonjs",
   "scripts": {
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -16,18 +19,24 @@
     "api",
     "lightweight"
   ],
-   "author": "Mayank <github.com/iammayank18>",
+  "author": "Mayank <github.com/iammayank18>",
   "contributors": [
     "Mayank <github.com/iammayank18>"
   ],
   "license": "ISC",
   "homepage": "https://github.com/Iammayank18/mimi.js",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
-    "express-jsdoc-swagger": "^1.8.0"
+    "express-jsdoc-swagger": "^1.8.0",
+    "jsonwebtoken": "^9.0.2",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.14.11",
     "typescript": "^5.5.3"
   }
