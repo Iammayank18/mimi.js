@@ -16,7 +16,10 @@
     "api",
     "lightweight"
   ],
-  "author": "iammayank18",
+   "author": "Mayank <github.com/iammayank18>",
+  "contributors": [
+    "Mayank <github.com/iammayank18>"
+  ],
   "license": "ISC",
   "homepage": "https://github.com/Iammayank18/mimi.js",
   "dependencies": {
