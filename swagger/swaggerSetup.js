@@ -1,4 +1,4 @@
-// swagger/swaggerSetup.js
+
 const expressJSDocSwagger = require("express-jsdoc-swagger");
 
 const setupSwagger = (app, options) => {
