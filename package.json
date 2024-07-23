@@ -1,12 +1,10 @@
 {
   "name": "mimi.js",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "A lightweight api development tool",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -28,10 +26,15 @@
   "dependencies": {
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
+    "esm": "^3.2.25",
     "express": "^4.19.2",
     "express-jsdoc-swagger": "^1.8.0",
+    "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
-    "ts-node": "^10.9.2"
+    "morgan": "^1.10.0",
+    "path": "^0.12.7",
+    "ts-node": "^10.9.2",
+    "winston": "^3.13.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -39,5 +42,8 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.14.11",
     "typescript": "^5.5.3"
+  },
+  "engines": {
+    "node": ">= 0.10.0"
   }
 }
