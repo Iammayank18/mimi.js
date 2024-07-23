@@ -1,6 +1,5 @@
-import  { Express } from 'express';
-import expressJSDocSwagger, { Options ,InfoObject, Security, Servers} from 'express-jsdoc-swagger';
-
+import { Express } from 'express';
+import expressJSDocSwagger, { Options, InfoObject, Security, Servers } from 'express-jsdoc-swagger';
 
 // Define an interface for the setup options
 export interface SetupOptions {

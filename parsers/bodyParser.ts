@@ -6,7 +6,4 @@ const jsonParser: RequestHandler = bodyParser.json();
 const urlencodedParser: RequestHandler = bodyParser.urlencoded({ extended: false });
 
 // Export the parsers
-export {
-  jsonParser,
-  urlencodedParser,
-};
+export { jsonParser, urlencodedParser };
