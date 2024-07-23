@@ -17,17 +17,42 @@ npm install mimi.js
 
 ## Usage
 
-### Basic Setup
+### CommonJS
+
+If your project uses CommonJS modules, you can import and use `mimi.js` as follows:
+
+**Example: `app.js`**
 
 ```javascript
-// Import the library
-import mimi from 'mimi.js';
+const { mimi } = require('mimi.js');
 
 // Create an app instance
 const app = mimi();
 
 app.get('/hello', (req, res) => {
-  res.send('Hello, world!');
+  res.send('Hello, mimi🐹!');
+});
+
+// Start the server
+app.listen(3000, () => {
+  console.log('Server is running on port 3000');
+});
+```
+
+### ESM (ECMAScript Modules)
+
+If your project uses ECMAScript Modules, you can import and use `mimi.js` like this:
+
+**Example: `app.mjs`**
+
+```javascript
+import { mimi } from 'mimi.js';
+
+// Create an app instance
+const app = mimi();
+
+app.get('/hello', (req, res) => {
+  res.send('Hello, mimi🐹!');
 });
 
 // Start the server
@@ -39,7 +64,7 @@ app.listen(3000, () => {
 ### Using Built-in Authentication
 
 ```typescript
-import mimi, { hashPassword, comparePassword, generateToken, authMiddleware } from 'mimi.js';
+import { mimi, hashPassword, comparePassword, generateToken, authMiddleware } from 'mimi.js';
 
 const app = mimi();
 
@@ -74,7 +99,7 @@ mimi.js integrates Swagger documentation automatically based on your defined rou
 
 ```javascript
 // Import the library
-import mimi, { Router, Route, setupSwagger, generateToken, comparePassword } from 'mimi.js';
+import { mimi, Router, Route, setupSwagger, generateToken, comparePassword } from 'mimi.js';
 
 // Create an app instance
 const app = mimi();
@@ -144,6 +169,23 @@ app.use(customParser);
 app.listen(3000, () => {
   console.log('Server is running on port 3000');
 });
+```
+
+## Automatic Route Loader
+
+`mimi.js` automatically detects and loads route modules from the `routes` directory in your project. This feature simplifies the management of routes by eliminating the need for manual imports.
+
+### Folder Structure
+
+To use the automatic route loader effectively, ensure your project is organized as follows:
+
+```
+/your-project-root
+  ├── routes
+  │   ├── example.js
+  │   └── anotherRoute.js
+  ├── app.js
+  └── package.json
 ```
 
 ## API Reference
