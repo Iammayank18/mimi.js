@@ -188,6 +188,72 @@ To use the automatic route loader effectively, ensure your project is organized 
   └── package.json
 ```
 
+## Built in Database Managers
+
+currently mimi.js only supports mongodb and sql.
+
+```typescript
+// mongodb setup
+import mimi, { mongodbManager } from 'mimi.js';
+// const mimi=require('mimi.js');
+// const { mongodbManager }=require('mimi.js');
+
+const mongodb = new mongodbManager('mongodb://localhost:27017/mimi');
+const app = mimi();
+
+mongodb
+  .connect()
+  .then((d) => {
+    console.log(d);
+  })
+  .catch((err) => {
+    console.log(err);
+  });
+
+const User = mongodb.createCollection('user', {
+  name: String,
+  age: String,
+  phone: String,
+});
+
+User.create({ name: 'mayank', age: '22', phone: '0000000000' });
+
+app.listen(3000, () => {
+  console.log('Server is running on port 3000');
+});
+```
+
+```typescript
+// sqlite setup
+import mimi, { SQLiteManager } from 'mimi.js';
+// const mimi=require('mimi.js');
+// const { SQLiteManager }=require('mimi.js');
+
+const sqlite = new SQLiteManager('./database.sqlite');
+const app = mimi();
+
+sql
+  .connect()
+  .then((d) => {
+    console.log('conected successfully sqllite');
+  })
+  .catch((err) => {
+    console.log(err);
+  });
+
+const User = sqlite.createModel('user', {
+  name: String,
+  age: String,
+  phone: String,
+});
+
+User.create({ title: 'mimi.js', content: 'readme' });
+
+app.listen(3000, () => {
+  console.log('Server is running on port 3000');
+});
+```
+
 ## API Reference
 
 ### `mimi()`
