@@ -1,7 +1,7 @@
 {
   "name": "mimi.js",
-  "version": "1.0.4",
-  "description": "A lightweight api development tool",
+  "version": "1.0.5",
+  "description": "Create node.js api in seconds🚀",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
