@@ -1,6 +1,6 @@
 {
   "name": "mimi.js",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A lightweight api development tool",
   "main": "index.js",
   "type": "commonjs",
@@ -31,8 +31,11 @@
     "express-jsdoc-swagger": "^1.8.0",
     "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.1",
     "morgan": "^1.10.0",
     "path": "^0.12.7",
+    "sequelize": "^6.37.3",
+    "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
     "winston": "^3.13.1"
   },
