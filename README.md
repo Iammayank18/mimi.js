@@ -24,7 +24,7 @@ If your project uses CommonJS modules, you can import and use `mimi.js` as follo
 **Example: `app.js`**
 
 ```javascript
-const { mimi } = require('mimi.js');
+const mimi = require('mimi.js');
 
 // Create an app instance
 const app = mimi();
@@ -46,7 +46,7 @@ If your project uses ECMAScript Modules, you can import and use `mimi.js` like t
 **Example: `app.mjs`**
 
 ```javascript
-import { mimi } from 'mimi.js';
+import mimi from 'mimi.js';
 
 // Create an app instance
 const app = mimi();
@@ -64,7 +64,7 @@ app.listen(3000, () => {
 ### Using Built-in Authentication
 
 ```typescript
-import { mimi, hashPassword, comparePassword, generateToken, authMiddleware } from 'mimi.js';
+import mimi, { hashPassword, comparePassword, generateToken, authMiddleware } from 'mimi.js';
 
 const app = mimi();
 
@@ -99,7 +99,7 @@ mimi.js integrates Swagger documentation automatically based on your defined rou
 
 ```javascript
 // Import the library
-import { mimi, Router, Route, setupSwagger, generateToken, comparePassword } from 'mimi.js';
+import mimi, { setupSwagger, generateToken, comparePassword } from 'mimi.js';
 
 // Create an app instance
 const app = mimi();
@@ -147,8 +147,6 @@ app.post('/login', async (req, res) => {
     res.status(401).json({ message: 'Invalid credentials' });
   }
 });
-
-app.use(router);
 
 // Start the server
 app.listen(3000, () => {
