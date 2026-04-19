@@ -1,0 +1,82 @@
+/* Brand colors — purple-to-indigo gradient matching the logo */
+:root {
+  --vp-c-brand-1: #7c6af5;
+  --vp-c-brand-2: #6257e8;
+  --vp-c-brand-3: #5349d4;
+  --vp-c-brand-soft: rgba(124, 106, 245, 0.14);
+}
+
+/* Hero gradient text */
+.VPHero .name {
+  background: linear-gradient(135deg, #a78bfa 0%, #6366f1 50%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Feature cards */
+.VPFeature {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.VPFeature:hover {
+  border-color: var(--vp-c-brand-1);
+  transform: translateY(-2px);
+}
+
+/* Code block line numbers */
+.vp-code-group .line-numbers {
+  color: var(--vp-c-text-3);
+}
+
+/* Sidebar active item */
+.VPSidebarItem.is-active > .item > .link {
+  color: var(--vp-c-brand-1) !important;
+  font-weight: 600;
+}
+
+/* Nav active link underline */
+.VPNavBarMenuLink.active {
+  color: var(--vp-c-brand-1) !important;
+}
+
+/* Table styling */
+.vp-doc table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+}
+.vp-doc table th {
+  background: var(--vp-c-bg-soft);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--vp-c-divider);
+  font-size: 0.875rem;
+}
+.vp-doc table td {
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--vp-c-divider);
+  font-size: 0.875rem;
+}
+.vp-doc table tr:nth-child(even) {
+  background: var(--vp-c-bg-soft);
+}
+
+/* Badge-style inline code */
+.vp-doc code {
+  font-size: 0.85em;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+
+/* Home hero background glow */
+.VPHero .image-bg {
+  background: radial-gradient(circle at center, rgba(124, 106, 245, 0.15) 0%, transparent 70%);
+}
+
+/* Smooth section transitions */
+.VPContent {
+  transition: padding 0.2s;
+}

@@ -1,31 +1,9 @@
 ---
 title: API Reference
-parent: Reference
-nav_order: 1
+outline: deep
 ---
 
 # API Reference
-{: .no_toc }
-
-<details open markdown="block">
-  <summary>Table of contents</summary>
-  {: .text-delta }
-- TOC
-{:toc}
-</details>
-
----
-
-## `mimi()` → `MimiApp`
-
-Creates and returns a new application instance.
-
-```typescript
-import mimi from 'mimi.js';
-const app = mimi();
-```
-
----
 
 ## MimiApp
 
@@ -81,26 +59,6 @@ app.register(myPlugin, { option: 'value' });
 await app.register(asyncPlugin);
 ```
 
----
-
-## MimiRequest
-
-Extends Node's `http.IncomingMessage`.
-
-| Property / Method | Type | Description |
-|-------------------|------|-------------|
-| `req.params` | `Record<string, string>` | Route parameters |
-| `req.query` | `Record<string, string>` | Parsed query string |
-| `req.body` | `unknown` | Parsed request body |
-| `req.path` | `string` | URL pathname (without query string) |
-| `req.hostname` | `string` | Host header value (no port) |
-| `req.ip` | `string` | Remote client IP |
-| `req.locals` | `Record<string, unknown>` | Per-request middleware storage |
-| `req.get(name)` | `string \| undefined` | Get a request header by name |
-| `req.is(type)` | `string \| false` | Check `Content-Type` against a mime type |
-
----
-
 ## MimiResponse
 
 Extends Node's `http.ServerResponse`.
@@ -116,24 +74,6 @@ Extends Node's `http.ServerResponse`.
 | `res.set(obj)` | `(obj: Record<string, string>) => this` | Set multiple headers at once |
 | `res.type(contentType)` | `(contentType: string) => this` | Set `Content-Type` |
 | `res.locals` | `Record<string, unknown>` | Per-request storage |
-
----
-
-## Router
-
-```typescript
-import { Router } from 'mimi.js';
-
-const router = Router();
-router.get('/path', handler);
-router.post('/path', handler);
-
-app.use('/prefix', router);
-```
-
-Supports the same HTTP method shortcuts as `MimiApp`.
-
----
 
 ## Middleware Factories
 
@@ -188,34 +128,6 @@ import { customParser } from 'mimi.js';
 app.use(customParser);
 ```
 
----
-
-## Auth
-
-All auth exports require `bcrypt` to be installed as a peer dependency (`npm install bcrypt`).
-
-```typescript
-import {
-  hashPassword,
-  comparePassword,
-  generateToken,
-  verifyToken,
-  authMiddleware,
-} from 'mimi.js';
-```
-
-| Export | Signature | Description |
-|--------|-----------|-------------|
-| `hashPassword` | `(password: string, saltRounds?: number) => Promise<string>` | Hash with bcrypt |
-| `comparePassword` | `(password: string, hash: string) => Promise<boolean>` | Verify bcrypt hash |
-| `generateToken` | `(payload: object, expiresIn?: string) => string` | Sign JWT |
-| `verifyToken` | `(token: string) => TokenPayload` | Verify + decode JWT |
-| `authMiddleware` | `RequestHandler` | Require `Authorization: Bearer <token>` |
-
-Requires `JWT_SECRET` environment variable for `generateToken` and `verifyToken`.
-
----
-
 ## Database
 
 ### `mongodbManager`
@@ -243,22 +155,6 @@ await db.disconnect();
 const seq = db.instance; // Sequelize instance
 ```
 
----
-
-## Swagger
-
-```typescript
-import { setupSwagger } from 'mimi.js';
-import type { SwaggerOptions } from 'mimi.js';
-
-setupSwagger(app, {
-  info: { title: 'My API', version: '1.0.0' },
-  filesPattern: './**/*.js',
-});
-```
-
----
-
 ## Plugin
 
 ```typescript
@@ -272,22 +168,3 @@ const myPlugin: Plugin = (app, options) => {
 app.register(myPlugin, { key: 'value' });
 ```
 
----
-
-## Type Exports
-
-```typescript
-import type {
-  MimiApp,
-  MimiRequest,
-  MimiResponse,
-  RequestHandler,
-  ErrorHandler,
-  NextFunction,
-  Middleware,
-  Plugin,
-  Route,
-  TokenPayload,
-  SwaggerOptions,
-} from 'mimi.js';
-```

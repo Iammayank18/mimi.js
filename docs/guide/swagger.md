@@ -1,56 +1,11 @@
 ---
 title: Swagger / OpenAPI
-parent: Guide
-nav_order: 6
+outline: deep
 ---
 
 # Swagger / OpenAPI
-{: .no_toc }
-
-<details open markdown="block">
-  <summary>Table of contents</summary>
-  {: .text-delta }
-- TOC
-{:toc}
-</details>
 
 mimi.js includes built-in Swagger UI at `/api-docs`. Annotate your routes with JSDoc comments — the spec is generated automatically.
-
----
-
-## Setup
-
-```typescript
-import mimi, { setupSwagger } from 'mimi.js';
-
-const app = mimi();
-
-setupSwagger(app, {
-  info: {
-    title: 'My API',
-    version: '1.0.0',
-    description: 'Documentation for My API',
-  },
-  filesPattern: './**/*.js', // where to look for JSDoc comments
-});
-
-app.listen(3000);
-// → http://localhost:3000/api-docs
-// → http://localhost:3000/api-docs/swagger.json
-```
-
-### Options
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `info.title` | `string` | ✓ | API title |
-| `info.version` | `string` | ✓ | API version |
-| `info.description` | `string` | | API description |
-| `info.contact` | `{ name?, email?, url? }` | | Contact info |
-| `info.license` | `{ name, url? }` | | License info |
-| `filesPattern` | `string` | | Glob pattern for source files (default: `./**/*.js`) |
-
----
 
 ## Documenting Routes
 
@@ -146,15 +101,3 @@ app.post('/login', async (req, res) => {
 });
 ```
 
----
-
-## Accessing the Docs
-
-Once your server is running:
-
-| URL | Description |
-|-----|-------------|
-| `http://localhost:3000/api-docs` | Interactive Swagger UI |
-| `http://localhost:3000/api-docs/swagger.json` | Raw OpenAPI JSON spec |
-
-The Swagger UI lets you explore and test your API directly in the browser.
