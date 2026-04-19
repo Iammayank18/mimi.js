@@ -142,7 +142,13 @@ app.post('/auth/login', async (req, res) => {
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Todo'
+ *                 type: object
+ *                 properties:
+ *                   id:        { type: integer, example: 1 }
+ *                   userId:    { type: integer, example: 1 }
+ *                   title:     { type: string, example: Buy groceries }
+ *                   done:      { type: boolean, example: false }
+ *                   createdAt: { type: string, format: date-time }
  */
 app.get('/todos', authMiddleware, (req, res) => {
   const userTodos = todos.filter((t) => t.userId === req.user.id);
