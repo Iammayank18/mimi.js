@@ -1,6 +1,7 @@
 ---
 title: Database
-nav_order: 6
+parent: Guide
+nav_order: 5
 ---
 
 # Database

@@ -1,6 +1,7 @@
 ---
 title: Swagger / OpenAPI
-nav_order: 7
+parent: Guide
+nav_order: 6
 ---
 
 # Swagger / OpenAPI

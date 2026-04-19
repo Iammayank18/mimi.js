@@ -1,6 +1,7 @@
 ---
 title: API Reference
-nav_order: 8
+parent: Reference
+nav_order: 1
 ---
 
 # API Reference

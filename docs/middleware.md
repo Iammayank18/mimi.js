@@ -1,6 +1,7 @@
 ---
 title: Middleware
-nav_order: 4
+parent: Guide
+nav_order: 3
 ---
 
 # Middleware

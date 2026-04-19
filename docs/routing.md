@@ -1,6 +1,7 @@
 ---
 title: Routing
-nav_order: 3
+parent: Guide
+nav_order: 2
 ---
 
 # Routing
