@@ -1,0 +1,34 @@
+title: mimi.js
+description: A production-ready Node.js web framework — Express-compatible, TypeScript-first, built for speed.
+baseurl: "/mimi.js"
+url: "https://iammayank18.github.io"
+
+remote_theme: just-the-docs/just-the-docs
+
+color_scheme: dark
+
+logo: "https://github.com/user-attachments/assets/6bb183ae-7ec1-4da9-95f2-85064f4deda0"
+
+aux_links:
+  "GitHub":
+    - "https://github.com/Iammayank18/mimi.js"
+  "npm":
+    - "https://www.npmjs.com/package/mimi.js"
+
+aux_links_new_tab: true
+
+search_enabled: true
+
+heading_anchors: true
+
+footer_content: "mimi.js &copy; 2024–2026 Mayank Thakur. ISC License."
+
+gh_edit_link: true
+gh_edit_link_text: "Edit this page on GitHub"
+gh_edit_repository: "https://github.com/Iammayank18/mimi.js"
+gh_edit_branch: "main"
+gh_edit_source: docs
+gh_edit_view_mode: "tree"
+
+exclude:
+  - superpowers/
