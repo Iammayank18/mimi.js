@@ -29,6 +29,22 @@ const app = mimi();
 app.use(cors({ origin: '*' }));
 app.use(security());
 app.use(json());
+
+// Swagger UI loads CSS, JS, and fonts from unpkg CDN — relax CSP for those routes only
+const swaggerCsp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://unpkg.com",
+  "style-src 'self' 'unsafe-inline' https://unpkg.com",
+  "font-src 'self' data: https://unpkg.com https://r2cdn.perplexity.ai",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+].join('; ');
+
+app.use('/api-docs', security({ contentSecurityPolicy: swaggerCsp }));
+app.use('/api-docs', (_req, res, next) => {
+  res.removeHeader('X-Frame-Options'); // allow SwaggerUI iframe elements
+  next();
+});
 app.use(urlencoded());
 app.use(requestLogger);
 
