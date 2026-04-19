@@ -17,20 +17,24 @@ req.get = function (this: MimiRequest, name: string): string | undefined {
   return this.headers[lc] as string | undefined;
 };
 
+function getParsedUrl(r: MimiRequest): { pathname: string; query: Record<string, string> } {
+  if ((r as any)._parsedUrl) return (r as any)._parsedUrl;
+  try {
+    const u = new URL(r.url ?? '/', 'http://x');
+    const query: Record<string, string> = {};
+    u.searchParams.forEach((v, k) => {
+      query[k] = v;
+    });
+    (r as any)._parsedUrl = { pathname: u.pathname, query };
+  } catch {
+    (r as any)._parsedUrl = { pathname: '/', query: {} };
+  }
+  return (r as any)._parsedUrl;
+}
+
 Object.defineProperty(req, 'query', {
   get(this: MimiRequest): Record<string, string> {
-    if ((this as any)._query) return (this as any)._query;
-    try {
-      const url = new URL(this.url ?? '/', 'http://x');
-      const result: Record<string, string> = {};
-      url.searchParams.forEach((v, k) => {
-        result[k] = v;
-      });
-      (this as any)._query = result;
-      return result;
-    } catch {
-      return {};
-    }
+    return getParsedUrl(this).query;
   },
   configurable: true,
   enumerable: true,
@@ -38,11 +42,7 @@ Object.defineProperty(req, 'query', {
 
 Object.defineProperty(req, 'path', {
   get(this: MimiRequest): string {
-    try {
-      return new URL(this.url ?? '/', 'http://x').pathname;
-    } catch {
-      return '/';
-    }
+    return getParsedUrl(this).pathname;
   },
   configurable: true,
   enumerable: true,
@@ -50,7 +50,7 @@ Object.defineProperty(req, 'path', {
 
 Object.defineProperty(req, 'hostname', {
   get(this: MimiRequest): string {
-    return (this.headers.host?.split(':')[0]) ?? '';
+    return this.headers.host?.split(':')[0] ?? '';
   },
   configurable: true,
   enumerable: true,
