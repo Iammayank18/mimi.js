@@ -1,0 +1,78 @@
+<h2>How should route handlers look in mimijs?</h2>
+<p class="subtitle">This is the most visible API decision — it affects every developer who uses the framework.</p>
+
+<div class="options">
+  <div class="option" data-choice="reqres" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Keep req / res / next (Express-compatible)</h3>
+      <p>Identical surface to Express. Every Express middleware, tutorial, and Stack Overflow answer works unchanged. TypeScript types are enriched (Zod-inferred body, typed params) but the calling convention is the same.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">mimijs handler — Option A</div>
+        <div class="mockup-body" style="font-family:monospace;font-size:13px;line-height:1.7;white-space:pre-wrap">app.post('/users',
+  validate({ body: z.object({ name: z.string() }) }),
+  async (req, res) => {
+    // req.body is typed: { name: string }
+    const user = await db.create(req.body);
+    res.status(201).json(user);
+  }
+);</div>
+      </div>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Wins</h4><ul><li>Zero migration cost from Express</li><li>All existing middleware works</li><li>No new concepts</li></ul></div>
+        <div class="cons"><h4>Costs</h4><ul><li>req/res are prototype-patched globals — hard to tree-shake</li><li>TypeScript inference is harder to wire</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="ctx" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Context object <code>ctx</code> (modern, Hono-style)</h3>
+      <p>A single <code>ctx</code> object per request carries everything: <code>ctx.req</code>, <code>ctx.res</code>, helper methods, and Zod-validated typed data. Cleaner TypeScript generics, easier testing.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">mimijs handler — Option B</div>
+        <div class="mockup-body" style="font-family:monospace;font-size:13px;line-height:1.7;white-space:pre-wrap">app.post('/users',
+  validate({ body: z.object({ name: z.string() }) }),
+  async (ctx) => {
+    // ctx.body is typed: { name: string }
+    const user = await db.create(ctx.body);
+    return ctx.json(user, 201);
+  }
+);</div>
+      </div>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Wins</h4><ul><li>Cleaner TS generics — types flow naturally</li><li>Easier to mock in tests (one object)</li><li>Return-based responses (no forgetting res.send)</li></ul></div>
+        <div class="cons"><h4>Costs</h4><ul><li>Express middleware needs an adapter</li><li>New concept for Express developers</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="dual" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Dual mode — both, with compatibility bridge</h3>
+      <p>The core runs on <code>ctx</code> internally. Route handlers can use either style — mimijs detects the arity and adapts. Express middleware mounts via <code>app.use(expressMiddleware())</code> and works unchanged.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">mimijs handler — Option C</div>
+        <div class="mockup-body" style="font-family:monospace;font-size:13px;line-height:1.7;white-space:pre-wrap"><span style="color:#888">// New style (preferred)</span>
+app.post('/users', async (ctx) => {
+  const user = await db.create(ctx.body);
+  return ctx.json(user, 201);
+});
+
+<span style="color:#888">// Express style still works — zero migration friction</span>
+app.post('/users', async (req, res) => {
+  const user = await db.create(req.body);
+  res.status(201).json(user);
+});</div>
+      </div>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Wins</h4><ul><li>Best of both: migrate gradually, write new code cleanly</li><li>Strongest story for Express migrants</li><li>TypeScript can infer which style from function signature</li></ul></div>
+        <div class="cons"><h4>Costs</h4><ul><li>Two mental models in one codebase</li><li>More implementation complexity internally</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:24px">Pick one — this defines how every mimijs tutorial and example will look.</p>

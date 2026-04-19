@@ -1,4 +1,7 @@
 node_modules/
 dist/
 *.log
-.superpowers/
+./docs/superpowers
+CLAUDE.md
+CONTEXT.md
+.claude/
