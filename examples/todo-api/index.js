@@ -37,7 +37,8 @@ const swaggerCsp = [
   "style-src 'self' 'unsafe-inline' https://unpkg.com",
   "font-src 'self' data: https://unpkg.com https://r2cdn.perplexity.ai",
   "img-src 'self' data:",
-  "connect-src 'self'",
+  "connect-src 'self' https://unpkg.com",
+  "worker-src blob:",
 ].join('; ');
 
 app.use('/api-docs', security({ contentSecurityPolicy: swaggerCsp }));
