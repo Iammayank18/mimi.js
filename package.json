@@ -1,7 +1,7 @@
 {
   "name": "mimi.js",
   "version": "2.0.0",
-  "description": "Create node.js api in seconds\ud83d\ude80",
+  "description": "Create node.js api in seconds🚀",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "commonjs",
@@ -43,13 +43,13 @@
     "mime-types": "^2.1.35",
     "mongoose": "^8.5.1",
     "path-to-regexp": "^6.3.0",
+    "pino": "^10.3.1",
     "qs": "^6.12.0",
     "raw-body": "^2.5.2",
     "send": "^0.18.0",
     "sequelize": "^6.37.3",
     "sqlite3": "^5.1.7",
-    "swagger-jsdoc": "^6.2.8",
-    "winston": "^3.13.1"
+    "swagger-jsdoc": "^6.2.8"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

@@ -1,13 +1,8 @@
-import winston from 'winston';
+import pino from 'pino';
 import type { MimiRequest, MimiResponse, NextFunction, RequestHandler } from '../types';
 
-export const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.combine(
-    winston.format.colorize(),
-    winston.format.printf(({ level, message }) => `${level}: ${message}`),
-  ),
-  transports: [new winston.transports.Console()],
+export const logger = pino({
+  level: process.env.LOG_LEVEL ?? 'info',
 });
 
 export const requestLogger: RequestHandler = (
@@ -17,8 +12,12 @@ export const requestLogger: RequestHandler = (
 ): void => {
   const start = Date.now();
   res.on('finish', () => {
-    const ms = Date.now() - start;
-    logger.info(`${req.method} ${req.url} ${res.statusCode} ${ms}ms`);
+    logger.info({
+      method: req.method,
+      url: req.url,
+      status: res.statusCode,
+      ms: Date.now() - start,
+    });
   });
   next();
 };
