@@ -1,7 +1,7 @@
 {
   "name": "mimi.js",
   "version": "2.0.0",
-  "description": "Create node.js api in seconds🚀",
+  "description": "Create node.js api in seconds\ud83d\ude80",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "commonjs",
@@ -35,20 +35,16 @@
   "license": "ISC",
   "homepage": "https://github.com/Iammayank18/mimi.js",
   "dependencies": {
-    "bcrypt": "^5.1.1",
     "content-type": "^1.0.5",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",
     "mime-types": "^2.1.35",
-    "mongoose": "^8.5.1",
     "path-to-regexp": "^6.3.0",
     "pino": "^10.3.1",
     "qs": "^6.12.0",
     "raw-body": "^2.5.2",
     "send": "^0.18.0",
-    "sequelize": "^6.37.3",
-    "sqlite3": "^5.1.7",
     "swagger-jsdoc": "^6.2.8"
   },
   "devDependencies": {
@@ -68,9 +64,33 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3",
     "vitepress": "^1.6.4",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.4",
+    "mongoose": "^8.5.1",
+    "sequelize": "^6.37.3",
+    "sqlite3": "^5.1.7",
+    "bcrypt": "^5.1.1"
   },
   "engines": {
     "node": ">= 16"
+  },
+  "peerDependencies": {
+    "bcrypt": ">=5",
+    "mongoose": ">=8",
+    "sequelize": ">=6",
+    "sqlite3": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "bcrypt": {
+      "optional": true
+    },
+    "mongoose": {
+      "optional": true
+    },
+    "sequelize": {
+      "optional": true
+    },
+    "sqlite3": {
+      "optional": true
+    }
   }
 }

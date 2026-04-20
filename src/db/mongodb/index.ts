@@ -1,35 +1,30 @@
-import mongoose, { Schema, Model, SchemaDefinition } from 'mongoose';
+type MongooseModule = typeof import('mongoose');
 
-export class mongodbManager {
-  private static instance: mongodbManager | null = null;
-  private databasePath!: string;
-  private connection: Promise<void> | null = null;
-
-  constructor(databasePath: string) {
-    if (mongodbManager.instance) {
-      return mongodbManager.instance;
-    }
-    this.databasePath = databasePath;
-    mongodbManager.instance = this;
-  }
-
-  connect(): Promise<string> {
-    if (this.connection) {
-      return this.connection.then(() => 'Your mongodb database is already connected');
-    }
-
-    this.connection = mongoose
-      .connect(this.databasePath)
-      .then(() => undefined);
-
-    return this.connection.then(() => 'Your mongodb database connected successfully');
-  }
-
-  createCollection<T = Record<string, unknown>>(
-    collectionName: string,
-    schemaDefinition: SchemaDefinition,
-  ): Model<T> {
-    const schema = new Schema(schemaDefinition, { timestamps: true });
-    return mongoose.model<T>(collectionName, schema);
+function getMongoose(): MongooseModule {
+  try {
+    return require('mongoose') as MongooseModule;
+  } catch {
+    throw new Error('[mimijs] mongoose is not installed. Run: npm install mongoose');
   }
 }
+
+class MongodbManager {
+  private _connected = false;
+
+  async connect(uri: string, options: Record<string, unknown> = {}): Promise<string> {
+    if (this._connected) return 'Your mongodb database is already connected';
+    const mongoose = getMongoose();
+    await mongoose.connect(uri, options as any);
+    this._connected = true;
+    return 'Your mongodb database connected successfully';
+  }
+
+  createCollection(collectionName: string, schemaDefinition: Record<string, unknown>): unknown {
+    const mongoose = getMongoose();
+    const { Schema } = mongoose;
+    const schema = new Schema(schemaDefinition as any, { timestamps: true });
+    return mongoose.model<any>(collectionName, schema);
+  }
+}
+
+export const mongodbManager = new MongodbManager();

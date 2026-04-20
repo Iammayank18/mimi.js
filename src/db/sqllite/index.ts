@@ -1,23 +1,31 @@
-import { Sequelize, ModelAttributes, Model, ModelStatic } from 'sequelize';
 import { logger } from '../../middleware/logger';
+
+type SequelizeModule = typeof import('sequelize');
+
+function getSequelize(): SequelizeModule {
+  try {
+    return require('sequelize') as SequelizeModule;
+  } catch {
+    throw new Error(
+      '[mimijs] sequelize and sqlite3 are not installed. Run: npm install sequelize sqlite3',
+    );
+  }
+}
 
 export class SQLiteManager {
   private static instance: SQLiteManager | null = null;
-  private databasePath!: string;
-  sequelize!: Sequelize;
+  sequelize!: import('sequelize').Sequelize;
 
-  constructor(databasePath: string) {
+  constructor(databasePath = ':memory:') {
     if (SQLiteManager.instance) {
       return SQLiteManager.instance;
     }
-
-    this.databasePath = databasePath;
+    const { Sequelize } = getSequelize();
     this.sequelize = new Sequelize({
       dialect: 'sqlite',
-      storage: this.databasePath,
+      storage: databasePath,
       logging: (msg: string) => logger.info(msg),
     });
-
     SQLiteManager.instance = this;
   }
 
@@ -26,10 +34,10 @@ export class SQLiteManager {
     return 'database connected';
   }
 
-  createModel<T extends Model>(
+  createModel(
     modelName: string,
-    schemaDefinition: ModelAttributes,
-  ): ModelStatic<T> {
-    return this.sequelize.define(modelName, schemaDefinition) as ModelStatic<T>;
+    schemaDefinition: import('sequelize').ModelAttributes,
+  ): import('sequelize').ModelStatic<import('sequelize').Model> {
+    return this.sequelize.define(modelName, schemaDefinition);
   }
 }

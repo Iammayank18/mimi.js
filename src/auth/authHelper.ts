@@ -1,5 +1,14 @@
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+
+type BcryptModule = typeof import('bcrypt');
+
+function getBcrypt(): BcryptModule {
+  try {
+    return require('bcrypt') as BcryptModule;
+  } catch {
+    throw new Error('[mimijs] bcrypt is not installed. Run: npm install bcrypt');
+  }
+}
 
 export interface TokenPayload {
   id: string | number;
@@ -9,11 +18,11 @@ export interface TokenPayload {
 const SALT_ROUNDS = 10;
 
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, SALT_ROUNDS);
+  return getBcrypt().hash(password, SALT_ROUNDS);
 }
 
 export async function comparePassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+  return getBcrypt().compare(password, hash);
 }
 
 export function generateToken(user: TokenPayload): string {
