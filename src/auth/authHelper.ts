@@ -35,7 +35,16 @@ export function verifyToken(token: string): TokenPayload | null {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error('JWT_SECRET environment variable is not set');
   try {
-    return jwt.verify(token, secret) as TokenPayload;
+    const payload = jwt.verify(token, secret, { algorithms: ['HS256'] });
+    if (
+      typeof payload !== 'object' ||
+      payload === null ||
+      typeof (payload as any).id === 'undefined' ||
+      typeof (payload as any).email !== 'string'
+    ) {
+      return null;
+    }
+    return payload as TokenPayload;
   } catch {
     return null;
   }

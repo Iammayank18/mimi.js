@@ -12,7 +12,9 @@ async function request(
       { hostname: '127.0.0.1', port: addr.port, path, method: 'GET' },
       (res) => {
         let raw = '';
-        res.on('data', (c) => { raw += c; });
+        res.on('data', (c) => {
+          raw += c;
+        });
         res.on('end', () => resolve({ status: res.statusCode ?? 0, body: raw }));
       },
     );
@@ -51,7 +53,9 @@ describe('app.setErrorHandler()', () => {
     });
   });
 
-  afterAll(() => { server.close(); });
+  afterAll(() => {
+    server.close();
+  });
 
   it('custom handler receives the error and formats the response', async () => {
     const { status, body } = await request(server, '/boom');
@@ -90,13 +94,15 @@ describe('default error handler (no setErrorHandler called)', () => {
     });
   });
 
-  afterAll(() => { server.close(); });
+  afterAll(() => {
+    server.close();
+  });
 
-  it('sends 500 JSON with the error message', async () => {
+  it('sends 500 with generic message (does not leak error.message)', async () => {
     const { status, body } = await request(server, '/fail');
     expect(status).toBe(500);
     const data = JSON.parse(body);
-    expect(data.error).toBe('default error');
+    expect(data.error).toBe('Internal Server Error');
     expect(data.code).toBeUndefined();
   });
 });

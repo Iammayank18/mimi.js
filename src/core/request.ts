@@ -18,16 +18,18 @@ req.get = function (this: MimiRequest, name: string): string | undefined {
 };
 
 function getParsedUrl(r: MimiRequest): { pathname: string; query: Record<string, string> } {
-  if ((r as any)._parsedUrl) return (r as any)._parsedUrl;
+  const currentUrl = r.url ?? '/';
+  const cached = (r as any)._parsedUrl;
+  if (cached && cached._rawUrl === currentUrl) return cached;
   try {
-    const u = new URL(r.url ?? '/', 'http://x');
+    const u = new URL(currentUrl, 'http://x');
     const query: Record<string, string> = {};
     u.searchParams.forEach((v, k) => {
       query[k] = v;
     });
-    (r as any)._parsedUrl = { pathname: u.pathname, query };
+    (r as any)._parsedUrl = { _rawUrl: currentUrl, pathname: u.pathname, query };
   } catch {
-    (r as any)._parsedUrl = { pathname: '/', query: {} };
+    (r as any)._parsedUrl = { _rawUrl: currentUrl, pathname: '/', query: {} };
   }
   return (r as any)._parsedUrl;
 }
