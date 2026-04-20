@@ -1,24 +1,32 @@
 import type { IncomingMessage, ServerResponse } from 'http';
+import type { MimiRequest, MimiResponse, AppErrorHandler } from '../types';
 
 export function createFinalHandler(
   req: IncomingMessage,
   res: ServerResponse,
+  errorHandler?: AppErrorHandler,
 ): (err?: Error | string) => void {
   return function done(err?: Error | string): void {
     if (res.headersSent) return;
 
     if (err) {
       const error = typeof err === 'string' ? new Error(err) : err;
-      const status = (error as any).status ?? (error as any).statusCode ?? 500;
-      res.statusCode = status;
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      const body = JSON.stringify({ error: error.message || 'Internal Server Error' });
-      res.setHeader('Content-Length', Buffer.byteLength(body));
-      try {
-        res.end(body);
-      } catch {
-        // headers already sent — nothing we can do
+
+      if (errorHandler) {
+        try {
+          const result = errorHandler(error, req as MimiRequest, res as MimiResponse);
+          if (result && typeof (result as Promise<void>).catch === 'function') {
+            (result as Promise<void>).catch(() => {
+              if (!res.headersSent) sendDefaultError(res, error);
+            });
+          }
+        } catch {
+          if (!res.headersSent) sendDefaultError(res, error);
+        }
+        return;
       }
+
+      sendDefaultError(res, error);
       return;
     }
 
@@ -26,10 +34,15 @@ export function createFinalHandler(
     res.statusCode = 404;
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Content-Length', Buffer.byteLength(msg));
-    try {
-      res.end(msg);
-    } catch {
-      // headers already sent
-    }
+    try { res.end(msg); } catch { /* headers already sent */ }
   };
+}
+
+function sendDefaultError(res: ServerResponse, error: Error): void {
+  const status = (error as any).status ?? (error as any).statusCode ?? 500;
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  const body = JSON.stringify({ error: error.message || 'Internal Server Error' });
+  res.setHeader('Content-Length', Buffer.byteLength(body));
+  try { res.end(body); } catch { /* headers already sent */ }
 }

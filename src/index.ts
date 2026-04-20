@@ -6,8 +6,22 @@ export { mimi } from './core/application';
 export { setupSwagger } from './swagger';
 export type { SwaggerOptions } from './swagger';
 
-export { json, urlencoded, cors, security, serveStatic, requestLogger, customParser } from './middleware';
-export type { JsonOptions, UrlencodedOptions, CorsOptions, SecurityOptions, StaticOptions } from './middleware';
+export {
+  json,
+  urlencoded,
+  cors,
+  security,
+  serveStatic,
+  requestLogger,
+  customParser,
+} from './middleware';
+export type {
+  JsonOptions,
+  UrlencodedOptions,
+  CorsOptions,
+  SecurityOptions,
+  StaticOptions,
+} from './middleware';
 
 export { logger } from './middleware/logger';
 
@@ -25,6 +39,7 @@ export type {
   MimiResponse,
   RequestHandler,
   ErrorHandler,
+  AppErrorHandler,
   NextFunction,
   Middleware,
   Plugin,

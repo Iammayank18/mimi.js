@@ -58,9 +58,12 @@ export interface Route {
   all(...handlers: RequestHandler[]): this;
 }
 
-export type Plugin = (
-  app: MimiApp,
-  options: Record<string, unknown>,
+export type Plugin = (app: MimiApp, options: Record<string, unknown>) => void | Promise<void>;
+
+export type AppErrorHandler = (
+  err: Error,
+  req: MimiRequest,
+  res: MimiResponse,
 ) => void | Promise<void>;
 
 export interface MimiApp {
@@ -77,6 +80,7 @@ export interface MimiApp {
   all(path: string, ...handlers: RequestHandler[]): this;
   listen(port: number, callback?: () => void): Server;
   register(plugin: Plugin, options?: Record<string, unknown>): this | Promise<this>;
+  setErrorHandler(fn: AppErrorHandler): this;
 }
 
 // Module augmentation so Node's built-in types accept our added properties
