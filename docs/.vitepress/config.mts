@@ -42,6 +42,7 @@ export default defineConfig({
           items: [
             { text: 'Routing', link: '/guide/routing' },
             { text: 'Middleware', link: '/guide/middleware' },
+            { text: 'Error Handling', link: '/guide/error-handling' },
           ],
         },
         {
@@ -50,6 +51,13 @@ export default defineConfig({
             { text: 'Authentication', link: '/guide/auth' },
             { text: 'Database', link: '/guide/database' },
             { text: 'Swagger / OpenAPI', link: '/guide/swagger' },
+            { text: 'Plugins', link: '/guide/plugins' },
+          ],
+        },
+        {
+          text: 'Testing',
+          items: [
+            { text: 'Testing', link: '/guide/testing' },
           ],
         },
       ],
