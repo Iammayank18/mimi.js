@@ -41,6 +41,7 @@ export default defineConfig({
           text: 'Core Concepts',
           items: [
             { text: 'Routing', link: '/guide/routing' },
+            { text: 'Route Loader', link: '/guide/route-loader' },
             { text: 'Middleware', link: '/guide/middleware' },
             { text: 'Error Handling', link: '/guide/error-handling' },
           ],

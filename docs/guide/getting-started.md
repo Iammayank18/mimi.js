@@ -5,7 +5,7 @@ outline: deep
 
 # Getting Started
 
-mimi.js is a TypeScript-first Node.js web framework with an Express-compatible API. It ships its own type declarations, includes middleware for the most common production needs, and performs at near-Fastify throughput out of the box.
+mimi.js is a Node.js web framework that works with plain JavaScript and TypeScript. It has an Express-compatible API, ships with production-ready middleware, and includes a route loader that wires up your `routes/` folder automatically.
 
 ## Installation
 
@@ -13,15 +13,15 @@ mimi.js is a TypeScript-first Node.js web framework with an Express-compatible A
 npm install mimi.js
 ```
 
-Requires **Node.js 18 or later**. No separate `@types/mimi.js` package needed — declarations are bundled.
+Requires **Node.js 18 or later**.
 
 ---
 
 ## Hello World
 
-The smallest possible server:
+::: code-group
 
-```typescript
+```js [JavaScript]
 import mimi from 'mimi.js';
 
 const app = mimi();
@@ -35,10 +35,27 @@ app.listen(3000, () => {
 });
 ```
 
+```ts [TypeScript]
+import mimi from 'mimi.js';
+
+const app = mimi();
+
+app.get('/', (req, res) => {
+  res.json({ message: 'Hello from mimi.js!' });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+:::
+
 Run it:
 
 ```bash
-npx ts-node server.ts
+node server.js        # JavaScript (add "type":"module" to package.json)
+node dist/server.js   # TypeScript (run tsc first)
 ```
 
 Visit `http://localhost:3000` — you'll get:
@@ -47,108 +64,121 @@ Visit `http://localhost:3000` — you'll get:
 { "message": "Hello from mimi.js!" }
 ```
 
+::: tip CommonJS
+If your project uses `require()`, import like this:
+```js
+const { default: mimi } = require('mimi.js');
+```
+:::
+
 ---
 
 ## Your First Routes
 
-Routes are registered with HTTP method names. `req.params` captures URL segments and `req.query` captures query string values:
+`req.params` captures URL segments, `req.query` captures query string values:
 
-```typescript
+::: code-group
+
+```js [JavaScript]
 import mimi from 'mimi.js';
 
 const app = mimi();
 
-// GET /users → list all users
 app.get('/users', (req, res) => {
   res.json({ users: [] });
 });
 
-// GET /users/42 → get user by ID
 app.get('/users/:id', (req, res) => {
-  const { id } = req.params;
-  res.json({ userId: id });
+  res.json({ userId: req.params.id });
 });
 
-// GET /search?q=hello&page=2
 app.get('/search', (req, res) => {
-  const { q, page = '1' } = req.query;
+  const { q = '', page = '1' } = req.query;
   res.json({ query: q, page: Number(page) });
 });
 
-// POST /users → create user
+app.post('/users', (req, res) => {
+  res.status(201).json({ created: req.body });
+});
+
+app.listen(3000);
+```
+
+```ts [TypeScript]
+import mimi from 'mimi.js';
+
+const app = mimi();
+
+app.get('/users', (req, res) => {
+  res.json({ users: [] });
+});
+
+app.get('/users/:id', (req, res) => {
+  res.json({ userId: req.params.id });
+});
+
+app.get('/search', (req, res) => {
+  const { q = '', page = '1' } = req.query;
+  res.json({ query: q, page: Number(page) });
+});
+
 app.post('/users', (req, res) => {
   const user = req.body as { name: string; email: string };
-  // ... save to DB
   res.status(201).json({ created: user });
 });
 
 app.listen(3000);
 ```
 
+:::
+
 ---
 
 ## Adding Middleware
 
-Middleware runs before your route handlers. Add it with `app.use()` before declaring routes:
+Call `app.use()` before your routes:
 
-```typescript
+::: code-group
+
+```js [JavaScript]
 import mimi, { json, cors, security, requestLogger } from 'mimi.js';
 
 const app = mimi();
 
-// Parse JSON request bodies — populates req.body
-app.use(json());
+app.use(json());                                         // parse JSON bodies
+app.use(cors({ origin: 'https://myapp.com' }));         // CORS headers
+app.use(security());                                     // security headers
+app.use(requestLogger);                                  // log requests
 
-// Allow cross-origin requests
-app.use(cors({ origin: 'https://myapp.com', credentials: true }));
-
-// Set security headers (CSP, X-Frame-Options, etc.)
-app.use(security());
-
-// Log every request: method, url, status, elapsed ms
-app.use(requestLogger);
-
-app.get('/ping', (req, res) => {
-  res.json({ ok: true });
-});
-
-app.post('/echo', (req, res) => {
-  res.json(req.body); // body parsed by json()
-});
+app.get('/ping', (req, res) => res.json({ ok: true }));
+app.post('/echo', (req, res) => res.json(req.body));
 
 app.listen(3000);
 ```
 
----
+```ts [TypeScript]
+import mimi, { json, cors, security, requestLogger } from 'mimi.js';
 
-## CommonJS and ES Modules
-
-**TypeScript (recommended):**
-
-```typescript
-import mimi, { json, cors } from 'mimi.js';
 const app = mimi();
+
+app.use(json());
+app.use(cors({ origin: 'https://myapp.com' }));
+app.use(security());
+app.use(requestLogger);
+
+app.get('/ping', (req, res) => res.json({ ok: true }));
+app.post('/echo', (req, res) => res.json(req.body));
+
+app.listen(3000);
 ```
 
-**CommonJS:**
-
-```javascript
-const { default: mimi, json, cors } = require('mimi.js');
-const app = mimi();
-```
-
-**ES Module (`.mjs` or `"type": "module"`):**
-
-```javascript
-import mimi, { json, cors } from 'mimi.js';
-const app = mimi();
-```
+:::
 
 ---
 
 ## TypeScript Setup
 
-Minimal `tsconfig.json`:
+Add a `tsconfig.json`:
 
 ```json
 {
@@ -163,15 +193,23 @@ Minimal `tsconfig.json`:
 }
 ```
 
-Import types when you need explicit annotations:
+Compile and run:
 
-```typescript
-import type { MimiRequest, MimiResponse, NextFunction, RequestHandler } from 'mimi.js';
+```bash
+npx tsc && node dist/server.js
+```
 
-const greet: RequestHandler = (req: MimiRequest, res: MimiResponse) => {
+Import types for explicit annotations:
+
+```ts
+import type { RequestHandler } from 'mimi.js';
+
+const greet: RequestHandler = (req, res) => {
   res.json({ hello: req.params.name });
 };
 ```
+
+No separate `@types/mimi.js` needed — type declarations are bundled.
 
 ---
 
@@ -179,17 +217,14 @@ const greet: RequestHandler = (req: MimiRequest, res: MimiResponse) => {
 
 | Variable | Required | Description |
 |---|---|---|
-| `JWT_SECRET` | Yes (for auth) | Secret key used to sign and verify JWT tokens |
+| `JWT_SECRET` | Yes (for auth) | Secret key for signing and verifying JWT tokens |
 | `LOG_LEVEL` | No | pino log level: `trace`, `debug`, `info`, `warn`, `error` (default: `info`) |
 
-Create a `.env` file at your project root:
-
 ```bash
+# .env
 JWT_SECRET=your-super-secret-key
 LOG_LEVEL=info
 ```
-
-mimi.js loads `dotenv` automatically — no extra setup required.
 
 ---
 
@@ -197,6 +232,7 @@ mimi.js loads `dotenv` automatically — no extra setup required.
 
 | Topic | What you'll learn |
 |---|---|
+| [Route Loader](/guide/route-loader) | Auto-load route files from `routes/` — zero wiring |
 | [Routing](/guide/routing) | Parameters, chaining, async handlers, 404s |
 | [Middleware](/guide/middleware) | All built-in middleware with full options |
 | [Error Handling](/guide/error-handling) | Custom error responses and `setErrorHandler` |
