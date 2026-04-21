@@ -50,9 +50,7 @@ features:
 npm install mimi.js
 ```
 
-::: code-group
-
-```js [JavaScript]
+```ts
 import mimi, { json, cors } from 'mimi.js';
 
 const app = mimi();
@@ -68,59 +66,40 @@ app.listen(3000, () => {
   console.log('Server running on http://localhost:3000');
 });
 ```
-
-```ts [TypeScript]
-import mimi, { json, cors } from 'mimi.js';
-
-const app = mimi();
-
-app.use(json());
-app.use(cors());
-
-app.get('/hello', (req, res) => {
-  res.json({ message: 'Hello from mimi.js!' });
-});
-
-app.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
-});
-```
-
-:::
 
 ```bash
-node server.js        # JavaScript (add "type":"module" to package.json)
-node dist/server.js   # TypeScript (run tsc first)
+node server.ts
 ```
-
-> **CommonJS:** `const { default: mimi, json } = require('mimi.js')`
 
 ---
 
 ## Auto Route Loading
 
-The biggest time-saver in mimi.js. Create a `routes/` folder and drop in route files — they are automatically discovered and mounted at startup. No import lists to maintain.
+The biggest time-saver in mimi.js. Create a `routes/` folder and drop in route files — they are automatically discovered and mounted at startup.
 
 ```
 my-app/
-├── server.js
+├── server.ts
 └── routes/
-    ├── users.js     ← loaded automatically
-    ├── posts.js     ← loaded automatically
-    └── auth.js      ← loaded automatically
+    ├── users.ts     ← loaded automatically
+    ├── posts.ts     ← loaded automatically
+    └── auth.ts      ← loaded automatically
 ```
 
-```js
-// routes/users.js
-module.exports = function (app) {
+```ts
+// routes/users.ts
+import type { MimiApp } from 'mimi.js';
+
+export default function (app: MimiApp) {
   app.get('/users', (req, res) => res.json({ users: [] }));
   app.post('/users', (req, res) => res.status(201).json(req.body));
-};
+}
 ```
 
-```js
-// server.js — nothing to import, routes load themselves
-const { default: mimi, json } = require('mimi.js');
+```ts
+// server.ts — nothing to import, routes load themselves
+import mimi, { json } from 'mimi.js';
+
 const app = mimi();
 app.use(json());
 app.listen(3000);

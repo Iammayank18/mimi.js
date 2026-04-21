@@ -23,27 +23,7 @@ Plugins let you package and reuse groups of routes, middleware, and startup logi
 
 A plugin is any function with the signature `(app, options) => void | Promise<void>`:
 
-::: code-group
-
-```js [JavaScript]
-import mimi from 'mimi.js';
-
-const helloPlugin = (app, options) => {
-  const prefix = options.prefix ?? '';
-
-  app.get(`${prefix}/hello`, (req, res) => {
-    res.json({ message: 'Hello from plugin!' });
-  });
-};
-
-const app = mimi();
-await app.register(helloPlugin, { prefix: '/api' });
-
-// GET /api/hello now works
-app.listen(3000);
-```
-
-```ts [TypeScript]
+```ts
 import mimi from 'mimi.js';
 import type { Plugin } from 'mimi.js';
 
@@ -58,10 +38,9 @@ const helloPlugin: Plugin = (app, options) => {
 const app = mimi();
 await app.register(helloPlugin, { prefix: '/api' });
 
+// GET /api/hello now works
 app.listen(3000);
 ```
-
-:::
 
 ---
 
@@ -69,25 +48,7 @@ app.listen(3000);
 
 Bundle routes and middleware together:
 
-::: code-group
-
-```js [JavaScript]
-import { json, cors } from 'mimi.js';
-
-const apiPlugin = (app) => {
-  app.use('/api', json());
-  app.use('/api', cors({ origin: process.env.ALLOWED_ORIGIN }));
-
-  app.get('/api/status', (req, res) => {
-    res.json({ status: 'ok', uptime: process.uptime() });
-  });
-};
-
-app.register(apiPlugin);
-app.listen(3000);
-```
-
-```ts [TypeScript]
+```ts
 import type { Plugin } from 'mimi.js';
 import { json, cors } from 'mimi.js';
 
@@ -104,50 +65,13 @@ app.register(apiPlugin);
 app.listen(3000);
 ```
 
-:::
-
 ---
 
 ## Async Plugin
 
-Use an async plugin when setup requires awaiting something (database connection, config service, etc.):
+Use an async plugin when setup requires awaiting something (database, config service, etc.):
 
-::: code-group
-
-```js [JavaScript]
-import mimi, { json } from 'mimi.js';
-import { mongodbManager } from 'mimi.js';
-
-const databasePlugin = async (app, options) => {
-  await mongodbManager.connect(options.uri);
-  console.log('Database connected');
-
-  const User = mongodbManager.createCollection('User', {
-    name:  { type: String, required: true },
-    email: { type: String, required: true },
-  });
-
-  app.get('/users', async (req, res) => {
-    const users = await User.find();
-    res.json(users);
-  });
-
-  app.post('/users', async (req, res) => {
-    const user = await User.create(req.body);
-    res.status(201).json(user);
-  });
-};
-
-const app = mimi();
-app.use(json());
-
-// register() awaits the plugin before continuing
-await app.register(databasePlugin, { uri: process.env.MONGO_URI });
-
-app.listen(3000);
-```
-
-```ts [TypeScript]
+```ts
 import mimi, { json } from 'mimi.js';
 import { mongodbManager } from 'mimi.js';
 import type { Plugin } from 'mimi.js';
@@ -162,8 +86,7 @@ const databasePlugin: Plugin = async (app, options) => {
   }) as any;
 
   app.get('/users', async (req, res) => {
-    const users = await User.find();
-    res.json(users);
+    res.json(await User.find());
   });
 
   app.post('/users', async (req, res) => {
@@ -175,12 +98,11 @@ const databasePlugin: Plugin = async (app, options) => {
 const app = mimi();
 app.use(json());
 
+// register() awaits the plugin before continuing
 await app.register(databasePlugin, { uri: process.env.MONGO_URI! });
 
 app.listen(3000);
 ```
-
-:::
 
 ::: warning
 `app.register()` returns a `Promise` for async plugins. Always `await` it before calling `app.listen()`.
@@ -190,50 +112,9 @@ app.listen(3000);
 
 ## Composing Multiple Plugins
 
-::: code-group
-
-```js [JavaScript]
-// src/plugins/auth.js
-export const authPlugin = (app, opts) => { /* ... */ };
-
-// src/plugins/users.js
-export const usersPlugin = async (app, opts) => { /* ... */ };
-
-// src/main.js
-import mimi, { json, cors, security, requestLogger } from 'mimi.js';
-import { authPlugin } from './plugins/auth.js';
-import { usersPlugin } from './plugins/users.js';
-
-const app = mimi();
-
-app.use(json());
-app.use(cors());
-app.use(security());
-app.use(requestLogger);
-
-app.register(authPlugin, { prefix: '/api/v1' });
-await app.register(usersPlugin, { dbUri: process.env.MONGO_URI });
-
-app.setErrorHandler((err, req, res) => {
-  const status = err.status ?? 500;
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify({ error: err.message }));
-});
-
-app.listen(Number(process.env.PORT) || 3000);
-```
-
-```ts [TypeScript]
-// src/plugins/auth.plugin.ts
-export const authPlugin: Plugin = (app, opts) => { /* ... */ };
-
-// src/plugins/users.plugin.ts
-export const usersPlugin: Plugin = async (app, opts) => { /* ... */ };
-
+```ts
 // src/main.ts
 import mimi, { json, cors, security, requestLogger } from 'mimi.js';
-import type { Plugin } from 'mimi.js';
 import { authPlugin } from './plugins/auth.plugin';
 import { usersPlugin } from './plugins/users.plugin';
 
@@ -257,19 +138,16 @@ app.setErrorHandler((err, req, res) => {
 app.listen(Number(process.env.PORT) || 3000);
 ```
 
-:::
-
 ---
 
 ## Health Check Plugin
 
-A reusable plugin commonly added to every service:
-
-```js
+```ts
+import type { Plugin } from 'mimi.js';
 import os from 'os';
 
-const healthPlugin = (app, options) => {
-  const version = options.version ?? '1.0.0';
+const healthPlugin: Plugin = (app, options) => {
+  const version = options.version as string ?? '1.0.0';
 
   app.get('/health', (req, res) => {
     res.json({

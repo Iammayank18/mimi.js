@@ -17,9 +17,7 @@ Request → middleware 1 → middleware 2 → route handler → Response
 
 Register global middleware with `app.use()` **before** your routes:
 
-::: code-group
-
-```js [JavaScript]
+```ts
 import mimi, { json, cors, requestLogger } from 'mimi.js';
 
 const app = mimi();
@@ -33,22 +31,6 @@ app.get('/ping', (req, res) => res.json({ ok: true }));
 app.listen(3000);
 ```
 
-```ts [TypeScript]
-import mimi, { json, cors, requestLogger } from 'mimi.js';
-
-const app = mimi();
-
-app.use(json());
-app.use(cors());
-app.use(requestLogger);
-
-app.get('/ping', (req, res) => res.json({ ok: true }));
-
-app.listen(3000);
-```
-
-:::
-
 Order matters — middleware runs in registration order.
 
 ---
@@ -61,7 +43,7 @@ mimi.js ships 7 production-ready middleware factories.
 
 Parses JSON request bodies into `req.body`. Skips GET, HEAD, OPTIONS automatically.
 
-```js
+```ts
 import { json } from 'mimi.js';
 
 app.use(json());
@@ -78,9 +60,9 @@ Returns `400 Bad Request` if the body is malformed JSON.
 
 ### `urlencoded(opts?)`
 
-Parses URL-encoded form bodies (`application/x-www-form-urlencoded`) into `req.body`.
+Parses URL-encoded form bodies into `req.body`.
 
-```js
+```ts
 import { urlencoded } from 'mimi.js';
 
 app.use(urlencoded({ extended: true }));
@@ -95,16 +77,13 @@ app.use(urlencoded({ extended: true }));
 
 ### `cors(opts?)`
 
-Adds Cross-Origin Resource Sharing headers. Handles preflight `OPTIONS` requests automatically.
+Adds CORS headers. Handles preflight `OPTIONS` requests automatically.
 
-```js
+```ts
 import { cors } from 'mimi.js';
 
-app.use(cors());                                        // allow all origins
-app.use(cors({ origin: 'https://myapp.com' }));        // specific origin
-app.use(cors({ origin: ['https://myapp.com', 'https://admin.myapp.com'] }));
-
-// Dynamic origin — return origin or false to deny
+app.use(cors());                                         // allow all origins
+app.use(cors({ origin: 'https://myapp.com' }));          // specific origin
 app.use(cors({
   origin: (origin) => origin.endsWith('.myapp.com') ? origin : false,
   credentials: true,
@@ -124,9 +103,9 @@ app.use(cors({
 
 ### `security(opts?)`
 
-Sets security-related HTTP response headers. All enabled by default — pass `false` to disable any.
+Sets security-related HTTP response headers. All enabled by default.
 
-```js
+```ts
 import { security } from 'mimi.js';
 
 app.use(security());
@@ -144,13 +123,15 @@ app.use(security({ contentSecurityPolicy: false, xFrameOptions: 'DENY' }));
 | `downloadOptions` | enabled |
 | `removePoweredBy` | enabled |
 
+Pass `false` for any option to disable that header.
+
 ---
 
 ### `serveStatic(root, opts?)`
 
 Serves files from a directory. Handles GET and HEAD only.
 
-```js
+```ts
 import { serveStatic } from 'mimi.js';
 import path from 'path';
 
@@ -172,7 +153,7 @@ app.use('/assets', serveStatic('./static', { maxAge: 86400 }));
 
 Logs each request's method, URL, status, and elapsed time as structured JSON (pino). Not a factory — import directly.
 
-```js
+```ts
 import { requestLogger } from 'mimi.js';
 app.use(requestLogger);
 ```
@@ -181,15 +162,15 @@ app.use(requestLogger);
 { "level": 30, "method": "GET", "url": "/users/1", "status": 200, "ms": 4 }
 ```
 
-Control log level with `LOG_LEVEL` environment variable (default `info`).
+Control log level with the `LOG_LEVEL` environment variable (default `info`).
 
 ---
 
 ### `customParser`
 
-Parses `application/custom` content-type bodies and sets `req.body = {}`. Useful as a starting point for custom parsers.
+Parses `application/custom` bodies and sets `req.body = {}`. Useful as a base for custom content-type handlers.
 
-```js
+```ts
 import { customParser } from 'mimi.js';
 app.use(customParser);
 ```
@@ -200,21 +181,7 @@ app.use(customParser);
 
 Any `(req, res, next)` function is valid middleware:
 
-::: code-group
-
-```js [JavaScript]
-const timing = (req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    console.log(`${req.method} ${req.url} — ${Date.now() - start}ms`);
-  });
-  next();
-};
-
-app.use(timing);
-```
-
-```ts [TypeScript]
+```ts
 import type { RequestHandler } from 'mimi.js';
 
 const timing: RequestHandler = (req, res, next) => {
@@ -228,35 +195,13 @@ const timing: RequestHandler = (req, res, next) => {
 app.use(timing);
 ```
 
-:::
-
 ---
 
 ## Attaching Data with `req.locals`
 
-Use `req.locals` to pass data between middleware and route handlers:
+Use `req.locals` to pass data between middleware and route handlers without modifying `req` types:
 
-::: code-group
-
-```js [JavaScript]
-const loadUser = async (req, res, next) => {
-  const token = req.get('Authorization')?.replace('Bearer ', '');
-  if (token) {
-    req.locals.user = await getUserFromToken(token);
-  }
-  next();
-};
-
-app.use(loadUser);
-
-app.get('/me', (req, res) => {
-  const user = req.locals.user;
-  if (!user) return res.status(401).json({ error: 'Not authenticated' });
-  res.json({ user });
-});
-```
-
-```ts [TypeScript]
+```ts
 import type { RequestHandler } from 'mimi.js';
 
 const loadUser: RequestHandler = async (req, res, next) => {
@@ -276,23 +221,21 @@ app.get('/me', (req, res) => {
 });
 ```
 
-:::
-
 ---
 
 ## Scoped Middleware
 
 Apply middleware only to specific routes:
 
-```js
-const adminOnly = (req, res, next) => {
+```ts
+const adminOnly: RequestHandler = (req, res, next) => {
   if (req.locals.role !== 'admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
   next();
 };
 
-// Inline — only this route
+// Inline — just this route
 app.get('/admin/stats', adminOnly, (req, res) => {
   res.json({ users: 1000 });
 });
@@ -305,10 +248,10 @@ app.use('/admin', adminOnly);
 
 ## Conditional Middleware
 
-Skip middleware for specific paths:
+Skip middleware for specific paths using an early return:
 
-```js
-const skipLogging = (req, res, next) => {
+```ts
+const skipLogging: RequestHandler = (req, res, next) => {
   if (req.url === '/health') return next();
   requestLogger(req, res, next);
 };
@@ -322,17 +265,7 @@ app.use(skipLogging);
 
 A 4-argument handler `(err, req, res, next)` is recognized as an error handler. Place it **after all routes**:
 
-::: code-group
-
-```js [JavaScript]
-// Last in the chain
-app.use((err, req, res, next) => {
-  const status = err.status ?? 500;
-  res.status(status).json({ error: err.message, path: req.url });
-});
-```
-
-```ts [TypeScript]
+```ts
 import type { ErrorHandler } from 'mimi.js';
 
 const errorHandler: ErrorHandler = (err, req, res, next) => {
@@ -342,8 +275,6 @@ const errorHandler: ErrorHandler = (err, req, res, next) => {
 
 app.use(errorHandler);
 ```
-
-:::
 
 ::: tip
 For global error handling, prefer [`app.setErrorHandler()`](/guide/error-handling#app-seterrorhandler-fn) — it's simpler and doesn't need to be placed last.

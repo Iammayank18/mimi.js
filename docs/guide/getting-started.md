@@ -5,7 +5,7 @@ outline: deep
 
 # Getting Started
 
-mimi.js is a Node.js web framework that works with plain JavaScript and TypeScript. It has an Express-compatible API, ships with production-ready middleware, and includes a route loader that wires up your `routes/` folder automatically.
+mimi.js is a Node.js web framework with an Express-compatible API. It works with JavaScript and TypeScript — no build step needed.
 
 ## Installation
 
@@ -13,15 +13,15 @@ mimi.js is a Node.js web framework that works with plain JavaScript and TypeScri
 npm install mimi.js
 ```
 
-Requires **Node.js 18 or later**.
+Requires **Node.js 22.6 or later**.
 
 ---
 
 ## Hello World
 
-::: code-group
+Create `server.ts`:
 
-```js [JavaScript]
+```ts
 import mimi from 'mimi.js';
 
 const app = mimi();
@@ -34,28 +34,11 @@ app.listen(3000, () => {
   console.log('Server running on http://localhost:3000');
 });
 ```
-
-```ts [TypeScript]
-import mimi from 'mimi.js';
-
-const app = mimi();
-
-app.get('/', (req, res) => {
-  res.json({ message: 'Hello from mimi.js!' });
-});
-
-app.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
-});
-```
-
-:::
 
 Run it:
 
 ```bash
-node server.js        # JavaScript (add "type":"module" to package.json)
-node dist/server.js   # TypeScript (run tsc first)
+node server.ts
 ```
 
 Visit `http://localhost:3000` — you'll get:
@@ -64,22 +47,13 @@ Visit `http://localhost:3000` — you'll get:
 { "message": "Hello from mimi.js!" }
 ```
 
-::: tip CommonJS
-If your project uses `require()`, import like this:
-```js
-const { default: mimi } = require('mimi.js');
-```
-:::
-
 ---
 
 ## Your First Routes
 
 `req.params` captures URL segments, `req.query` captures query string values:
 
-::: code-group
-
-```js [JavaScript]
+```ts
 import mimi from 'mimi.js';
 
 const app = mimi();
@@ -104,112 +78,27 @@ app.post('/users', (req, res) => {
 app.listen(3000);
 ```
 
-```ts [TypeScript]
-import mimi from 'mimi.js';
-
-const app = mimi();
-
-app.get('/users', (req, res) => {
-  res.json({ users: [] });
-});
-
-app.get('/users/:id', (req, res) => {
-  res.json({ userId: req.params.id });
-});
-
-app.get('/search', (req, res) => {
-  const { q = '', page = '1' } = req.query;
-  res.json({ query: q, page: Number(page) });
-});
-
-app.post('/users', (req, res) => {
-  const user = req.body as { name: string; email: string };
-  res.status(201).json({ created: user });
-});
-
-app.listen(3000);
-```
-
-:::
-
 ---
 
 ## Adding Middleware
 
 Call `app.use()` before your routes:
 
-::: code-group
-
-```js [JavaScript]
-import mimi, { json, cors, security, requestLogger } from 'mimi.js';
-
-const app = mimi();
-
-app.use(json());                                         // parse JSON bodies
-app.use(cors({ origin: 'https://myapp.com' }));         // CORS headers
-app.use(security());                                     // security headers
-app.use(requestLogger);                                  // log requests
-
-app.get('/ping', (req, res) => res.json({ ok: true }));
-app.post('/echo', (req, res) => res.json(req.body));
-
-app.listen(3000);
-```
-
-```ts [TypeScript]
-import mimi, { json, cors, security, requestLogger } from 'mimi.js';
-
-const app = mimi();
-
-app.use(json());
-app.use(cors({ origin: 'https://myapp.com' }));
-app.use(security());
-app.use(requestLogger);
-
-app.get('/ping', (req, res) => res.json({ ok: true }));
-app.post('/echo', (req, res) => res.json(req.body));
-
-app.listen(3000);
-```
-
-:::
-
----
-
-## TypeScript Setup
-
-Add a `tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "strict": true,
-    "outDir": "dist"
-  },
-  "include": ["src"]
-}
-```
-
-Compile and run:
-
-```bash
-npx tsc && node dist/server.js
-```
-
-Import types for explicit annotations:
-
 ```ts
-import type { RequestHandler } from 'mimi.js';
+import mimi, { json, cors, security, requestLogger } from 'mimi.js';
 
-const greet: RequestHandler = (req, res) => {
-  res.json({ hello: req.params.name });
-};
+const app = mimi();
+
+app.use(json());          // parse JSON bodies
+app.use(cors());          // CORS headers
+app.use(security());      // security headers
+app.use(requestLogger);   // log requests
+
+app.get('/ping', (req, res) => res.json({ ok: true }));
+app.post('/echo', (req, res) => res.json(req.body));
+
+app.listen(3000);
 ```
-
-No separate `@types/mimi.js` needed — type declarations are bundled.
 
 ---
 

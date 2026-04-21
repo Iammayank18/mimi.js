@@ -11,9 +11,7 @@ Routes map HTTP methods + URL patterns to handler functions. mimi.js supports al
 
 ## Basic Routes
 
-Register routes with `app.get()`, `app.post()`, `app.put()`, `app.patch()`, `app.delete()`:
-
-```js
+```ts
 app.get('/hello', (req, res) => {
   res.json({ message: 'Hello!' });
 });
@@ -31,9 +29,9 @@ app.delete('/users/:id', (req, res) => {
 });
 ```
 
-Every method handler returns the app, so you can chain:
+Every method returns the app, so you can chain:
 
-```js
+```ts
 app
   .get('/ping', (req, res) => res.json({ ok: true }))
   .get('/version', (req, res) => res.json({ version: '2.0.0' }));
@@ -45,7 +43,7 @@ app
 
 Named segments prefixed with `:` are captured in `req.params` as strings:
 
-```js
+```ts
 // GET /users/42/posts/7
 app.get('/users/:userId/posts/:postId', (req, res) => {
   const { userId, postId } = req.params;
@@ -56,8 +54,8 @@ app.get('/users/:userId/posts/:postId', (req, res) => {
 
 **Optional parameters** — append `?`:
 
-```js
-// Matches both /items  and  /items/123
+```ts
+// Matches /items  and  /items/123
 app.get('/items/:id?', (req, res) => {
   res.json({ id: req.params.id ?? null });
 });
@@ -65,7 +63,7 @@ app.get('/items/:id?', (req, res) => {
 
 **Wildcard segments** — use `*`:
 
-```js
+```ts
 // Matches /files/any/depth/path.txt
 app.get('/files/*', (req, res) => {
   res.json({ path: req.params[0] });
@@ -78,7 +76,7 @@ app.get('/files/*', (req, res) => {
 
 `req.query` is a plain object — all values are strings:
 
-```js
+```ts
 // GET /search?q=node&page=2&limit=20
 app.get('/search', (req, res) => {
   const { q = '', page = '1', limit = '10' } = req.query;
@@ -92,21 +90,7 @@ app.get('/search', (req, res) => {
 
 Add `json()` middleware to parse JSON bodies into `req.body`:
 
-::: code-group
-
-```js [JavaScript]
-import mimi, { json } from 'mimi.js';
-
-const app = mimi();
-app.use(json());
-
-app.post('/users', (req, res) => {
-  const { name, email } = req.body;
-  res.status(201).json({ name, email });
-});
-```
-
-```ts [TypeScript]
+```ts
 import mimi, { json } from 'mimi.js';
 
 const app = mimi();
@@ -118,17 +102,15 @@ app.post('/users', (req, res) => {
 });
 ```
 
-:::
-
 For URL-encoded form data, use `urlencoded()` instead (or in addition).
 
 ---
 
 ## `app.route()` — Chaining Multiple Methods
 
-Use `app.route(path)` to define multiple HTTP methods on the same path without repeating the path string:
+Define multiple HTTP methods on the same path without repeating it:
 
-```js
+```ts
 app.route('/articles')
   .get((req, res) => res.json({ articles: [] }))
   .post((req, res) => res.status(201).json(req.body));
@@ -145,29 +127,7 @@ app.route('/articles/:id')
 
 Pass multiple handlers to a route. Each calls `next()` to pass control forward:
 
-::: code-group
-
-```js [JavaScript]
-const requireAuth = (req, res, next) => {
-  if (!req.headers.authorization) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
-};
-
-const validateBody = (req, res, next) => {
-  if (!req.body?.name) {
-    return res.status(400).json({ error: 'name is required' });
-  }
-  next();
-};
-
-app.post('/items', requireAuth, validateBody, (req, res) => {
-  res.status(201).json({ name: req.body.name });
-});
-```
-
-```ts [TypeScript]
+```ts
 import type { RequestHandler } from 'mimi.js';
 
 const requireAuth: RequestHandler = (req, res, next) => {
@@ -189,15 +149,13 @@ app.post('/items', requireAuth, validateBody, (req, res) => {
 });
 ```
 
-:::
-
 ---
 
 ## Async Handlers
 
-mimi.js automatically forwards thrown errors from async handlers to `next(err)`:
+mimi.js automatically catches thrown errors from async handlers:
 
-```js
+```ts
 app.get('/users/:id', async (req, res) => {
   const user = await db.users.findById(req.params.id);
   if (!user) {
@@ -209,7 +167,7 @@ app.get('/users/:id', async (req, res) => {
 
 Or use `try/catch` with explicit `next`:
 
-```js
+```ts
 app.get('/users/:id', async (req, res, next) => {
   try {
     const user = await db.users.findById(req.params.id);
@@ -224,11 +182,9 @@ app.get('/users/:id', async (req, res, next) => {
 
 ## Route Grouping with a Sub-Router
 
-Mount a `Router` at a prefix to group related routes. In large apps, each Router lives in its own file — see [Route Loader](/guide/route-loader) for zero-config file-based routing.
+Mount a `Router` at a prefix to group related routes. See [Route Loader](/guide/route-loader) for zero-config file-based routing.
 
-::: code-group
-
-```js [JavaScript]
+```ts
 import mimi, { json, Router } from 'mimi.js';
 
 const app = mimi();
@@ -242,31 +198,12 @@ users.post('/', (req, res) => res.status(201).json(req.body));
 app.use('/api/users', users);
 app.listen(3000);
 ```
-
-```ts [TypeScript]
-import mimi, { json, Router } from 'mimi.js';
-
-const app = mimi();
-app.use(json());
-
-const users = new Router();
-users.get('/', (req, res) => res.json({ users: [] }));
-users.get('/:id', (req, res) => res.json({ id: req.params.id }));
-users.post('/', (req, res) => res.status(201).json(req.body));
-
-app.use('/api/users', users);
-app.listen(3000);
-```
-
-:::
 
 ---
 
 ## `app.all()` — Any HTTP Method
 
-Match any HTTP method — useful for logging or preflight:
-
-```js
+```ts
 app.all('/api/*', (req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
@@ -277,9 +214,9 @@ app.all('/api/*', (req, res, next) => {
 
 ## 404 — Route Not Found
 
-mimi.js returns a `404 text/plain` when no route matches. Override it with a catch-all placed **after all routes**:
+mimi.js returns `404 text/plain` when no route matches. Override with a catch-all placed **after all routes**:
 
-```js
+```ts
 app.use((req, res) => {
   res.status(404).json({ error: `Cannot ${req.method} ${req.url}` });
 });
@@ -291,22 +228,7 @@ app.use((req, res) => {
 
 Use `req.locals` to share data across handlers in the same request:
 
-::: code-group
-
-```js [JavaScript]
-const loadUser = async (req, res, next) => {
-  const user = await db.users.findById(req.params.id);
-  if (!user) return res.status(404).json({ error: 'Not found' });
-  req.locals.user = user;
-  next();
-};
-
-app.get('/users/:id', loadUser, (req, res) => {
-  res.json(req.locals.user);
-});
-```
-
-```ts [TypeScript]
+```ts
 import type { RequestHandler } from 'mimi.js';
 
 const loadUser: RequestHandler = async (req, res, next) => {
@@ -320,5 +242,3 @@ app.get('/users/:id', loadUser, (req, res) => {
   res.json(req.locals.user);
 });
 ```
-
-:::
