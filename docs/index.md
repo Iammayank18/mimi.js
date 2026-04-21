@@ -19,7 +19,7 @@ hero:
 features:
   - icon: ⚡
     title: 4× Faster Than Express
-    details: 86,804 req/s on simple routes vs Express's 20,530. Built on a lean HTTP pipeline with zero unnecessary overhead.
+    details: 89,504 req/s on simple routes vs Express's 20,414 — and stays flat at 88,305 req/s even with 50 routes registered.
 
   - icon: 🗂️
     title: Auto Route Loading
@@ -115,10 +115,8 @@ Benchmarked: single Node.js process · 100 concurrent connections · 10s (autoca
 
 | Framework | Simple route | 50-route app | Memory |
 |---|---|---|---|
-| Express 4 | 20,530 req/s | 19,525 req/s | 136 MB |
-| Fastify 5 | 95,322 req/s | 93,204 req/s | 92 MB |
-| **mimi.js v2** | **86,804 req/s** | 42,992 req/s¹ | **118 MB** |
-
-> ¹ Radix trie router ships in v2.1 — brings 50-route performance to ~90k req/s.
+| Express 4 | 20,414 req/s | 19,704 req/s | 136 MB |
+| Fastify 5 | 94,060 req/s | 94,275 req/s | 93 MB |
+| **mimi.js v2** | **89,504 req/s** | **88,305 req/s** | **96 MB** |
 
 </div>

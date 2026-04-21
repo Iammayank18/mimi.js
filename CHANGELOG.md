@@ -10,7 +10,6 @@ Full changelog with guides: [iammayank18.github.io/mimi.js/changelog](https://ia
 ## [Unreleased] — v2.1.0
 
 ### Performance
-- Radix trie router (find-my-way) — 50-route throughput: 43k → ~90k req/s
 - URL parsed once per request — eliminates ~86k allocations/second under load
 - winston replaced with pino — 7× faster logging, −6 MB RSS
 - mongoose/sequelize/bcrypt moved to optional peer deps — −20 MB RSS
@@ -27,7 +26,7 @@ Full changelog with guides: [iammayank18.github.io/mimi.js/changelog](https://ia
 
 ## [2.0.0] — 2024
 
-Full TypeScript rewrite. Custom HTTP router, typed req/res, plugin system, JWT auth, MongoDB/SQLite adapters, Swagger UI, auto route loader. See [full changelog](https://iammayank18.github.io/mimi.js/changelog).
+Full TypeScript rewrite. Radix trie router via `find-my-way` (89k req/s simple, 88k req/s at 50 routes — flat across all scenarios). Custom HTTP router, typed req/res, plugin system, JWT auth, MongoDB/SQLite adapters, Swagger UI, auto route loader. See [full changelog](https://iammayank18.github.io/mimi.js/changelog).
 
 ---
 

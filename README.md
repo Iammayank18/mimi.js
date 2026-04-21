@@ -14,15 +14,14 @@
 
 | | Express 4 | Fastify 5 | **mimi.js v2** |
 |---|---|---|---|
-| Simple route (req/s) | 20,530 | 95,322 | **86,804** |
-| 50-route app (req/s) | 19,525 | 93,204 | 42,992 ¹ |
-| Memory (RSS) | 136 MB | 92 MB | **118 MB** |
+| Simple route (req/s) | 20,414 | 94,060 | **89,504** |
+| 50-route app (req/s) | 19,704 | 94,275 | **88,305** |
+| Memory (RSS) | 136 MB | 93 MB | **96 MB** |
 | TypeScript | DefinitelyTyped | First-class | **First-class** |
 | Built-in auth | ✗ | plugin | **✓ JWT + bcrypt** |
 | Built-in database | ✗ | ✗ | **✓ MongoDB + SQLite** |
 | Auto Swagger docs | ✗ | plugin | **✓** |
 
-> ¹ Radix trie router ships in v2.1 — brings 50-route performance to ~90k req/s.  
 > Benchmarks: single process, 100 connections, autocannon 10s.
 
 ---

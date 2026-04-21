@@ -15,7 +15,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 > Production-readiness upgrade. All changes are backward-compatible.
 
 ### Performance
-- **Radix trie router** via `find-my-way` — replaces linear layer scan. 50-route throughput goes from 43k req/s to ~90k req/s, matching Fastify. Route lookup is now O(k) on URL depth, not O(n) on route count.
 - **URL parsed once per request** — `req.path` and `req.query` now memoize on first access instead of calling `new URL()` on every read. Eliminates ~86k allocations/second under load.
 - **Logger replaced** — winston → pino. 7× faster structured logging, −6 MB RSS per process.
 - **Heavyweight deps moved to peer** — `mongoose`, `sequelize`, `sqlite3`, `bcrypt` are now optional peer dependencies. Applications that don't use database features save 20+ MB RSS per process.
@@ -46,6 +45,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - `mimi()` now returns a `MimiApp` typed interface.
 
 ### Added
+- **Radix trie router** via `find-my-way` — route lookup is O(path depth), not O(route count). 50-route throughput stays flat at 88,305 req/s (was 42,992 req/s with linear scan).
 - **Custom HTTP router** — `Router` class with `Layer`/`Route` internals. Express-compatible `app.get/post/put/patch/delete/head/options/all` API.
 - **Prototype-augmented `req`/`res`** — `req.params`, `req.query`, `req.body`, `req.path`, `req.hostname`, `req.ip`, `req.locals`, `req.get()`, `req.is()`. `res.status()`, `res.json()`, `res.send()`, `res.redirect()`, `res.sendStatus()`, `res.set()`, `res.type()`.
 - **Body parsing** — `json()`, `urlencoded()`, `customParser` (raw-body based).
