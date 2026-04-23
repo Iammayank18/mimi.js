@@ -110,3 +110,14 @@ HTTP_METHODS.forEach((method) => {
     return this;
   };
 });
+
+export interface Router {
+  get(path: string, ...handlers: Middleware[]): this;
+  post(path: string, ...handlers: Middleware[]): this;
+  put(path: string, ...handlers: Middleware[]): this;
+  patch(path: string, ...handlers: Middleware[]): this;
+  delete(path: string, ...handlers: Middleware[]): this;
+  head(path: string, ...handlers: Middleware[]): this;
+  options(path: string, ...handlers: Middleware[]): this;
+  all(path: string, ...handlers: Middleware[]): this;
+}

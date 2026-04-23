@@ -78,9 +78,9 @@ app.put('/users/:id', (req, res) => res.json({ id: req.params.id }));
 app.delete('/users/:id', (req, res) => res.sendStatus(204));
 
 // Router for grouping
-const api = Router();
+const api = new Router();
 api.get('/status', (_req, res) => res.json({ ok: true }));
-app.use('/api', api);
+app.use('/api', api); // GET /api/status
 
 app.listen(3000);
 ```

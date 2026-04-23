@@ -180,9 +180,11 @@ app.get('/users/:id', async (req, res, next) => {
 
 ---
 
-## Route Grouping with a Sub-Router
+## Route Grouping with `Router`
 
-Mount a `Router` at a prefix to group related routes. See [Route Loader](/guide/route-loader) for zero-config file-based routing.
+`Router` lets you organise related routes into a standalone module and mount them at a path prefix — the same pattern as Express.
+
+### Inline usage
 
 ```ts
 import mimi, { json, Router } from 'mimi.js';
@@ -191,13 +193,48 @@ const app = mimi();
 app.use(json());
 
 const users = new Router();
-users.get('/', (req, res) => res.json({ users: [] }));
+users.get('/', (_req, res) => res.json({ users: [] }));
 users.get('/:id', (req, res) => res.json({ id: req.params.id }));
 users.post('/', (req, res) => res.status(201).json(req.body));
+users.delete('/:id', (_req, res) => res.sendStatus(204));
 
-app.use('/api/users', users);
+app.use('/users', users); // mount at /users prefix
+
+app.listen(3000);
+// GET /users      → users.get('/')
+// GET /users/42   → users.get('/:id')
+```
+
+### File-based usage (recommended)
+
+Drop a file in your `routes/` directory and export a `Router` as `default`. The auto-loader picks it up automatically — no manual mounting needed.
+
+```ts
+// routes/products.ts
+import { Router } from 'mimi.js';
+
+const router = new Router();
+
+router.get('/products', (_req, res) => res.json({ products: [] }));
+router.get('/products/:id', (req, res) => res.json({ id: req.params.id }));
+router.post('/products', (req, res) => res.status(201).json(req.body));
+
+export default router;
+```
+
+```ts
+// index.ts — nothing extra needed; mimi() auto-loads routes/*
+import mimi, { json } from 'mimi.js';
+
+const app = mimi();
+app.use(json());
 app.listen(3000);
 ```
+
+> When using the auto-loader, register the **full path** on each handler (`/products`, `/products/:id`) — the loader mounts with no prefix.
+> When using `app.use('/prefix', router)`, register **relative paths** (`/`, `/:id`) — the prefix is prepended automatically.
+
+See [Route Loader](/guide/route-loader) for the full auto-loading convention.
 
 ---
 
@@ -214,13 +251,13 @@ app.all('/api/*', (req, res, next) => {
 
 ## 404 — Route Not Found
 
-mimi.js returns `404 text/plain` when no route matches. Override with a catch-all placed **after all routes**:
+When no route matches, mimi.js automatically returns a plain-text `404` response. No extra code needed.
 
-```ts
-app.use((req, res) => {
-  res.status(404).json({ error: `Cannot ${req.method} ${req.url}` });
-});
-```
+::: warning Do not use `app.use()` for 404 handling
+`app.use()` handlers run as **middleware** — before route handlers are looked up in the trie. A catch-all `app.use((req, res) => { ... })` fires on *every* request, preventing routes from ever matching.
+:::
+
+To customise the 404 body, intercept it in `setErrorHandler` by checking the status code, or handle it in the framework's final handler by not registering anything extra.
 
 ---
 

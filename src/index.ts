@@ -1,5 +1,3 @@
-import 'dotenv/config';
-
 export { mimi as default } from './core/application';
 export { mimi } from './core/application';
 
@@ -29,6 +27,7 @@ export { hashPassword, comparePassword, generateToken, verifyToken, authMiddlewa
 export type { TokenPayload } from './auth';
 
 export { Router } from './router';
+export { default as loadRoutes } from './router-loader';
 
 export { mongodbManager } from './db/mongodb';
 export { SQLiteManager } from './db/sqllite';

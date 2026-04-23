@@ -7,6 +7,55 @@ outline: deep
 
 mimi.js includes built-in Swagger UI at `/api-docs`. Annotate your routes with JSDoc comments — the spec is generated automatically.
 
+## Setup
+
+```ts
+import mimi, { setupSwagger } from 'mimi.js';
+
+const app = mimi();
+
+setupSwagger(app, {
+  info: { title: 'My API', version: '1.0.0' },
+  filesPattern: './routes/**/*.ts', // glob pointing at your route files
+});
+```
+
+Visit `http://localhost:3000/api-docs` to see the interactive UI.
+The raw OpenAPI JSON is available at `/api-docs/swagger.json`.
+
+---
+
+## Content Security Policy
+
+Swagger UI loads its assets (JS, CSS, fonts) from `https://unpkg.com`. If you use the `security()` middleware, its default CSP (`default-src 'self'`) will block those assets.
+
+Pass a permissive CSP string specifically for Swagger when calling `security()`:
+
+```ts
+import mimi, { security, setupSwagger } from 'mimi.js';
+
+const app = mimi();
+
+app.use(security({
+  contentSecurityPolicy:
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://unpkg.com; " +
+    "style-src 'self' 'unsafe-inline' https://unpkg.com; " +
+    "img-src 'self' data: https://unpkg.com; " +
+    "font-src 'self' https://unpkg.com; " +
+    "connect-src 'self'",
+}));
+
+setupSwagger(app, {
+  info: { title: 'My API', version: '1.0.0' },
+  filesPattern: './routes/**/*.ts',
+});
+```
+
+If you're not using Swagger in production, you can conditionally disable `setupSwagger` and keep the strict default CSP.
+
+---
+
 ## Documenting Routes
 
 Use JSDoc `@` annotations above each route handler. The full syntax follows [express-jsdoc-swagger](https://brikev.github.io/express-jsdoc-swagger-docs/).

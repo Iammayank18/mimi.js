@@ -67,7 +67,12 @@ export class Layer {
   }
 
   handleRequest(req: MimiRequest, res: MimiResponse, next: NextFunction): void {
-    const fn = this.handle;
+    // Support Router instances passed directly to app.use()
+    const fn =
+      typeof this.handle !== 'function' && typeof (this.handle as any).handle === 'function'
+        ? (this.handle as any).handle.bind(this.handle)
+        : this.handle;
+
     if (fn.length > 3) {
       // error handler — skip in normal flow
       return next();

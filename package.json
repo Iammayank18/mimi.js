@@ -1,12 +1,30 @@
 {
   "name": "mimi.js",
-  "version": "2.0.0",
-  "description": "Create node.js api in seconds🚀",
+  "version": "2.0.2",
+  "description": "Production-ready Node.js web framework — Express-compatible, TypeScript-first, built for speed.",
   "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "type": "commonjs",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/write-esm-wrapper.mjs",
     "dev": "ts-node src/index.ts",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build",
@@ -23,21 +41,29 @@
   "keywords": [
     "mimi.js",
     "express",
-    "api",
-    "lightweight",
-    "framework",
-    "typescript"
+    "express-alternative",
+    "nodejs",
+    "web-framework",
+    "rest-api",
+    "typescript",
+    "jwt",
+    "auth",
+    "middleware",
+    "mongodb",
+    "sqlite",
+    "swagger",
+    "openapi",
+    "radix-router",
+    "fastify-like"
   ],
   "author": "Mayank <github.com/iammayank18>",
   "contributors": [
     "Mayank <github.com/iammayank18>"
   ],
   "license": "ISC",
-  "homepage": "https://github.com/Iammayank18/mimi.js",
+  "homepage": "https://iammayank18.github.io/mimi.js/",
   "dependencies": {
     "content-type": "^1.0.5",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
     "find-my-way": "^9.5.0",
     "jsonwebtoken": "^9.0.2",
     "mime-types": "^2.1.35",
