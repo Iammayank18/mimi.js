@@ -15,7 +15,7 @@ When your app starts, mimi.js:
 
 1. Looks for a `routes/` folder in your project root
 2. Reads every `.js` and `.ts` file inside it
-3. Calls each file's exported function with the `app` instance
+3. Mounts each file's default export — either a `Router` instance or a factory function
 4. Your routes are registered — automatically
 
 If the `routes/` folder doesn't exist, the loader silently skips and your app starts normally.
@@ -26,84 +26,157 @@ If the `routes/` folder doesn't exist, the loader silently skips and your app st
 
 ```
 my-app/
-├── server.ts
+├── index.ts
 ├── package.json
 └── routes/
+    ├── auth.ts        ← auto-loaded
     ├── users.ts       ← auto-loaded
-    ├── posts.ts       ← auto-loaded
-    └── auth.ts        ← auto-loaded
+    └── products.ts    ← auto-loaded
 ```
 
 ---
 
 ## Writing a Route File
 
-Each file exports a default function that receives the `app` instance:
+### Recommended — `export default router`
+
+Create a `Router`, define your routes, export it as default. This is the same pattern as Express Router.
 
 ```ts
 // routes/users.ts
+import { Router, authMiddleware } from 'mimi.js';
+
+const router = new Router();
+
+router.get('/users', (_req, res) => {
+  res.json({ users: [] });
+});
+
+router.get('/users/:id', (req, res) => {
+  res.json({ id: req.params.id });
+});
+
+router.post('/users', (req, res) => {
+  res.status(201).json(req.body);
+});
+
+router.delete('/users/:id', authMiddleware, (_req, res) => {
+  res.sendStatus(204);
+});
+
+export default router;
+```
+
+### Alternative — factory function
+
+Export a function that receives the `app` instance. Useful when you need direct access to `app`.
+
+```ts
+// routes/health.ts
 import type { MimiApp } from 'mimi.js';
 
 export default function (app: MimiApp) {
-  app.get('/users', (req, res) => {
-    res.json({ users: [] });
-  });
-
-  app.post('/users', (req, res) => {
-    res.status(201).json(req.body);
-  });
-
-  app.get('/users/:id', (req, res) => {
-    res.json({ id: req.params.id });
+  app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime() });
   });
 }
 ```
+
+Both patterns are auto-detected by the loader — use whichever fits the file.
 
 ---
 
 ## Server Setup
 
-Your `server.ts` stays minimal — no route imports needed:
+Your `index.ts` stays minimal — no route imports needed:
 
 ```ts
-import mimi, { json, cors } from 'mimi.js';
+import mimi, { json, cors, security, requestLogger } from 'mimi.js';
 
-const app = mimi(); // routes/ loaded here automatically
+const app = mimi(); // routes/ loaded automatically on startup
 
+app.use(requestLogger);
 app.use(json());
-app.use(cors());
+app.use(cors({ origin: '*' }));
+app.use(security());
 
 app.listen(3000, () => {
   console.log('Server on http://localhost:3000');
 });
 ```
 
-Run:
+---
 
-```bash
-node server.ts
+## Full Example
+
+```
+my-app/
+├── index.ts
+├── .env              (PORT, JWT_SECRET)
+└── routes/
+    ├── auth.ts
+    ├── users.ts
+    └── products.ts
+```
+
+```ts
+// routes/auth.ts
+import { Router, hashPassword, comparePassword, generateToken, authMiddleware } from 'mimi.js';
+
+const router = new Router();
+
+router.post('/auth/register', async (req: any, res: any) => {
+  const { name, email, password } = req.body;
+  const hash = await hashPassword(password);
+  // save user to DB...
+  res.status(201).json({ message: 'Registered', email });
+});
+
+router.post('/auth/login', async (req: any, res: any) => {
+  const { email, password } = req.body;
+  // fetch user from DB...
+  const token = generateToken({ id: user.id, email });
+  res.json({ token });
+});
+
+router.get('/auth/me', authMiddleware, (req: any, res: any) => {
+  res.json({ user: req.user });
+});
+
+export default router;
+```
+
+```ts
+// routes/products.ts
+import { Router, authMiddleware } from 'mimi.js';
+
+const router = new Router();
+
+router.get('/products', (req: any, res: any) => {
+  const { search, category } = req.query;
+  // filter products...
+  res.json({ products: [] });
+});
+
+router.get('/products/:id', (req: any, res: any) => {
+  res.json({ id: req.params.id });
+});
+
+router.post('/products', authMiddleware, (req: any, res: any) => {
+  res.status(201).json(req.body);
+});
+
+export default router;
 ```
 
 ---
 
-## Using Routers in Route Files
+## Route File Rules
 
-Route files can mount a `Router` for sub-path grouping:
-
-```ts
-// routes/api.ts
-import { Router } from 'mimi.js';
-import type { MimiApp } from 'mimi.js';
-
-export default function (app: MimiApp) {
-  const router = new Router();
-
-  router.get('/status', (req, res) => res.json({ ok: true }));
-  router.get('/version', (req, res) => res.json({ version: '1.0.0' }));
-
-  app.use('/api', router);
-}
-```
+- Files must be in the top-level `routes/` directory
+- Only `.js` and `.ts` extensions are loaded
+- Default export must be a `Router` instance or a function — anything else is skipped
+- Route paths are **full paths** (e.g. `/users`, `/users/:id`) — the loader mounts with no prefix
 
 ---
 
@@ -111,18 +184,18 @@ export default function (app: MimiApp) {
 
 **No boilerplate** — adding a route file is one step, not three (create, import, mount).
 
-**Natural code splitting** — each domain (users, posts, auth) lives in its own file from day one.
+**Natural code splitting** — each domain (users, products, auth) lives in its own file.
 
-**Scales without friction** — a 2-route app and a 200-route app have identical `server.ts` files.
+**Scales without friction** — a 2-route app and a 200-route app have identical `index.ts` files.
 
 ---
 
-## When to Use `app.use()` Instead
+## When to Use Manual Mounting Instead
 
-The route loader is ideal for most projects. You may prefer manual `app.use()` when:
+The route loader works for most projects. You may prefer `app.use()` when:
 
-- You need strict ordering guarantees across route files
-- You're building a library or framework on top of mimi.js
+- You need strict loading order across route files
+- You want to mount a router at a URL prefix (`app.use('/api/v1', router)`)
 - Your project uses a non-standard folder structure
 
-In those cases, simply don't create a `routes/` folder — the loader skips silently.
+In those cases, skip the `routes/` folder and wire routes manually — the loader skips silently.

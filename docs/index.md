@@ -79,7 +79,7 @@ The biggest time-saver in mimi.js. Create a `routes/` folder and drop in route f
 
 ```
 my-app/
-├── server.ts
+├── index.ts
 └── routes/
     ├── users.ts     ← loaded automatically
     ├── posts.ts     ← loaded automatically
@@ -88,16 +88,19 @@ my-app/
 
 ```ts
 // routes/users.ts
-import type { MimiApp } from 'mimi.js';
+import { Router } from 'mimi.js';
 
-export default function (app: MimiApp) {
-  app.get('/users', (req, res) => res.json({ users: [] }));
-  app.post('/users', (req, res) => res.status(201).json(req.body));
-}
+const router = new Router();
+
+router.get('/users', (_req, res) => res.json({ users: [] }));
+router.post('/users', (req, res) => res.status(201).json(req.body));
+router.get('/users/:id', (req, res) => res.json({ id: req.params.id }));
+
+export default router;
 ```
 
 ```ts
-// server.ts — nothing to import, routes load themselves
+// index.ts — nothing to import, routes load themselves
 import mimi, { json } from 'mimi.js';
 
 const app = mimi();

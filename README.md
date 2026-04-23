@@ -245,17 +245,23 @@ Files placed in a `routes/` directory are loaded automatically at startup:
 ```
 my-api/
 ├── routes/
-│   ├── users.js      ← loaded as /users (you set the path inside)
-│   └── products.js
-├── app.js
+│   ├── users.ts      ← auto-loaded
+│   └── products.ts   ← auto-loaded
+├── index.ts
 └── package.json
 ```
 
-```javascript
-// routes/users.js
-module.exports = function (app) {
-  app.get('/users', (_req, res) => res.json([]));
-};
+```ts
+// routes/users.ts
+import { Router } from 'mimi.js';
+
+const router = new Router();
+
+router.get('/users', (_req, res) => res.json({ users: [] }));
+router.post('/users', (req, res) => res.status(201).json(req.body));
+router.get('/users/:id', (req, res) => res.json({ id: req.params.id }));
+
+export default router;
 ```
 
 ---
