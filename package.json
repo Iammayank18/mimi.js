@@ -1,6 +1,6 @@
 {
   "name": "mimi.js",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Production-ready Node.js web framework — Express-compatible, TypeScript-first, built for speed.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
