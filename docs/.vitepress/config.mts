@@ -21,7 +21,7 @@ export default defineConfig({
       { text: 'Reference', link: '/reference/api-reference', activeMatch: '/reference/' },
       { text: 'Changelog', link: '/changelog' },
       {
-        text: 'v2.0.3',
+        text: 'v2.0.5',
         items: [
           { text: 'Changelog', link: '/changelog' },
           { text: 'npm', link: 'https://www.npmjs.com/package/mimi.js' },

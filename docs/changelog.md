@@ -37,7 +37,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
-## [2.0.3] — 2026-05-12
+## [2.0.5] — 2026-05-12
 
 ### Added
 - **Schema-based route documentation** — pass a `RouteSchema` object (with Zod schemas) as the second argument to any route method. The framework validates the request and generates the OpenAPI operation automatically. JSDoc `@openapi` comment parsing has been removed.
@@ -78,7 +78,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - **Password hashing** — `hashPassword`, `comparePassword` (bcrypt).
 - **MongoDB adapter** — `mongodbManager` singleton.
 - **SQLite adapter** — `SQLiteManager` class (Sequelize + sqlite3).
-- **Swagger UI** — `setupSwagger(app, options)` serves `/api-docs`. Zod-schema-based route docs added in v2.0.3.
+- **Swagger UI** — `setupSwagger(app, options)` serves `/api-docs`. Zod-schema-based route docs added in v2.0.5.
 - **Auto route loader** — scans `./routes/*.js` at startup and mounts each file.
 - **Plugin system** — `app.register(plugin, options)` with async support.
 - **`async` handler support** — errors from async handlers automatically forwarded to `next`.
