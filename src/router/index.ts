@@ -13,7 +13,6 @@ const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'
 const ALL_HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const;
 
 export class Router {
-  // middleware and error-handler layers only (no route layers)
   stack: Layer[] = [];
   private trie = FindMyWay({ ignoreTrailingSlash: true });
   private _routeMap = new Map<string, Route>();
@@ -40,39 +39,44 @@ export class Router {
   }
 
   route(path: string): IRoute {
+    const trie = this.trie;
     let route = this._routeMap.get(path);
     if (!route) {
       route = new Route(path);
       this._routeMap.set(path, route);
-      // Register all methods — route.dispatch handles per-method filtering internally
       ALL_HTTP_METHODS.forEach((method) => {
-        this.trie.on(method, path, route!.dispatch as any);
+        trie.on(method, path, route!.dispatch as any);
       });
+
+      // Push a route layer so this route is checked in registration order,
+      // not after all middleware — matching Express's interleaved stack behavior.
+      const routeLayer = new Layer(path, { end: true, strict: false }, (req, res, next) => {
+        const method = (req.method ?? 'GET') as FindMyWay.HTTPMethod;
+        const found = trie.find(method, req.path ?? '/');
+        if (found) {
+          req.params = { ...req.params, ...(found.params as Record<string, string>) };
+          (found.handler as any)(req, res, next);
+        } else {
+          next();
+        }
+      });
+      routeLayer.route = route as any;
+      this.stack.push(routeLayer);
     }
     return route as unknown as IRoute;
   }
 
   handle(req: MimiRequest, res: MimiResponse, done: NextFunction): void {
+    (req as any).res = res;
+    (res as any).req = req;
     let idx = 0;
     const stack = this.stack;
-    const trie = this.trie;
     const originalUrl = req.url ?? '/';
 
     function next(err?: Error | string): void {
       const layer = stack[idx++];
 
       if (!layer) {
-        // All middleware exhausted — look up route in trie
-        if (!err) {
-          const reqPath = req.path ?? '/';
-          const method = (req.method ?? 'GET') as 'GET';
-          const found = trie.find(method, reqPath);
-          if (found) {
-            const params = found.params as Record<string, string>;
-            req.params = { ...req.params, ...params };
-            return (found.handler as any)(req, res, next);
-          }
-        }
         return done(err as Error | undefined);
       }
 

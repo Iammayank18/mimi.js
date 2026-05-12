@@ -2,16 +2,61 @@ import type { IncomingMessage, ServerResponse, Server } from 'http';
 
 export type NextFunction = (err?: Error | string) => void;
 
+export interface CookieOptions {
+  maxAge?: number;
+  signed?: boolean;
+  expires?: Date;
+  httpOnly?: boolean;
+  path?: string;
+  domain?: string;
+  secure?: boolean;
+  sameSite?: 'strict' | 'lax' | 'none' | boolean;
+}
+
+export interface SendFileOptions {
+  root?: string;
+  maxAge?: number | string;
+  lastModified?: boolean;
+  etag?: boolean;
+  dotfiles?: 'allow' | 'deny' | 'ignore';
+  headers?: Record<string, string>;
+}
+
 export interface MimiRequest extends IncomingMessage {
   params: Record<string, string>;
   query: Record<string, string>;
   body: unknown;
   path: string;
   hostname: string;
+  host: string;
   ip: string;
-  locals: Record<string, unknown>;
+  ips: string[];
+  protocol: string;
+  secure: boolean;
+  xhr: boolean;
+  fresh: boolean;
+  stale: boolean;
+  subdomains: string[];
   get(name: string): string | undefined;
+  header(name: string): string | undefined;
   is(type: string): string | false;
+  accepts(): string[];
+  accepts(type: string): string | false;
+  accepts(types: string[]): string | false;
+  acceptsEncodings(): string[];
+  acceptsEncodings(encoding: string): string | false;
+  acceptsEncodings(encodings: string[]): string | false;
+  acceptsCharsets(): string[];
+  acceptsCharsets(charset: string): string | false;
+  acceptsCharsets(charsets: string[]): string | false;
+  acceptsLanguages(): string[];
+  acceptsLanguages(lang: string): string | false;
+  acceptsLanguages(langs: string[]): string | false;
+  range(
+    size: number,
+    options?: { combine?: boolean },
+  ): -1 | -2 | (Array<{ start: number; end: number }> & { type: string }) | undefined;
+  locals: Record<string, unknown>;
 }
 
 export interface MimiResponse extends ServerResponse {
@@ -19,11 +64,26 @@ export interface MimiResponse extends ServerResponse {
   status(code: number): this;
   set(field: string, value: string): this;
   set(obj: Record<string, string>): this;
+  header(field: string, value: string): this;
+  header(obj: Record<string, string>): this;
+  get(field: string): string | undefined;
   type(contentType: string): this;
+  contentType(contentType: string): this;
   json(obj: unknown): void;
+  jsonp(obj: unknown): void;
   send(body: unknown): void;
   redirect(url: string, status?: number): void;
   sendStatus(code: number): void;
+  sendFile(path: string, options?: SendFileOptions, callback?: (err?: Error) => void): void;
+  download(path: string, filename?: string, options?: SendFileOptions, callback?: (err?: Error) => void): void;
+  attachment(filename?: string): this;
+  append(field: string, value: string | string[]): this;
+  location(url: string): this;
+  vary(field: string): this;
+  links(links: Record<string, string>): this;
+  cookie(name: string, value: string | Record<string, unknown>, options?: CookieOptions): this;
+  clearCookie(name: string, options?: CookieOptions): this;
+  format(obj: Record<string, () => void>): void;
 }
 
 export type RequestHandler = (
