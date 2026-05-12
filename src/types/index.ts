@@ -2,6 +2,71 @@ import type { IncomingMessage, ServerResponse, Server } from 'http';
 
 export type NextFunction = (err?: Error | string) => void;
 
+export interface SwaggerContact {
+  name?: string;
+  url?: string;
+  email?: string;
+}
+
+export interface SwaggerLicense {
+  name: string;
+  url?: string;
+}
+
+export type SecuritySchemeType = 'http' | 'apiKey' | 'oauth2' | 'openIdConnect';
+
+export interface SecurityScheme {
+  type: SecuritySchemeType;
+  /** For type "http": "bearer" | "basic" */
+  scheme?: string;
+  /** For bearer: "JWT", "Token", etc. */
+  bearerFormat?: string;
+  /** For type "apiKey": header | query | cookie */
+  in?: 'header' | 'query' | 'cookie';
+  /** For type "apiKey": the header/query param name */
+  name?: string;
+  description?: string;
+}
+
+export interface SwaggerOptions {
+  info: {
+    title: string;
+    version: string;
+    description?: string;
+    contact?: SwaggerContact;
+    license?: SwaggerLicense;
+  };
+  servers?: Array<{ url: string; description?: string }>;
+  /** Global security requirement applied to all operations */
+  security?: Record<string, string[]>[];
+  components?: {
+    securitySchemes?: Record<string, SecurityScheme>;
+  };
+}
+
+export interface MimiOptions {
+  docs?: SwaggerOptions;
+}
+
+export interface ZodSchema {
+  parse(data: unknown): unknown;
+  toJSONSchema(options?: Record<string, unknown>): Record<string, unknown>;
+}
+
+export interface RouteSchema {
+  summary?: string;
+  description?: string;
+  tags?: string[];
+  deprecated?: boolean;
+  /** Per-route security requirements. Overrides global security for this operation. */
+  security?: Record<string, string[]>[];
+  body?: ZodSchema;
+  params?: ZodSchema;
+  query?: ZodSchema;
+  headers?: ZodSchema;
+  response?: Record<number, ZodSchema>;
+}
+
 export interface CookieOptions {
   maxAge?: number;
   signed?: boolean;
@@ -75,7 +140,12 @@ export interface MimiResponse extends ServerResponse {
   redirect(url: string, status?: number): void;
   sendStatus(code: number): void;
   sendFile(path: string, options?: SendFileOptions, callback?: (err?: Error) => void): void;
-  download(path: string, filename?: string, options?: SendFileOptions, callback?: (err?: Error) => void): void;
+  download(
+    path: string,
+    filename?: string,
+    options?: SendFileOptions,
+    callback?: (err?: Error) => void,
+  ): void;
   attachment(filename?: string): this;
   append(field: string, value: string | string[]): this;
   location(url: string): this;
@@ -108,13 +178,21 @@ export interface LayerOptions {
 }
 
 export interface Route {
+  get(schema: RouteSchema, ...handlers: RequestHandler[]): this;
   get(...handlers: RequestHandler[]): this;
+  post(schema: RouteSchema, ...handlers: RequestHandler[]): this;
   post(...handlers: RequestHandler[]): this;
+  put(schema: RouteSchema, ...handlers: RequestHandler[]): this;
   put(...handlers: RequestHandler[]): this;
+  patch(schema: RouteSchema, ...handlers: RequestHandler[]): this;
   patch(...handlers: RequestHandler[]): this;
+  delete(schema: RouteSchema, ...handlers: RequestHandler[]): this;
   delete(...handlers: RequestHandler[]): this;
+  head(schema: RouteSchema, ...handlers: RequestHandler[]): this;
   head(...handlers: RequestHandler[]): this;
+  options(schema: RouteSchema, ...handlers: RequestHandler[]): this;
   options(...handlers: RequestHandler[]): this;
+  all(schema: RouteSchema, ...handlers: RequestHandler[]): this;
   all(...handlers: RequestHandler[]): this;
 }
 
@@ -130,13 +208,21 @@ export interface MimiApp {
   use(path: string, ...handlers: Middleware[]): this;
   use(...handlers: Middleware[]): this;
   route(path: string): Route;
+  get(path: string, schema: RouteSchema, ...handlers: RequestHandler[]): this;
   get(path: string, ...handlers: RequestHandler[]): this;
+  post(path: string, schema: RouteSchema, ...handlers: RequestHandler[]): this;
   post(path: string, ...handlers: RequestHandler[]): this;
+  put(path: string, schema: RouteSchema, ...handlers: RequestHandler[]): this;
   put(path: string, ...handlers: RequestHandler[]): this;
+  patch(path: string, schema: RouteSchema, ...handlers: RequestHandler[]): this;
   patch(path: string, ...handlers: RequestHandler[]): this;
+  delete(path: string, schema: RouteSchema, ...handlers: RequestHandler[]): this;
   delete(path: string, ...handlers: RequestHandler[]): this;
+  head(path: string, schema: RouteSchema, ...handlers: RequestHandler[]): this;
   head(path: string, ...handlers: RequestHandler[]): this;
+  options(path: string, schema: RouteSchema, ...handlers: RequestHandler[]): this;
   options(path: string, ...handlers: RequestHandler[]): this;
+  all(path: string, schema: RouteSchema, ...handlers: RequestHandler[]): this;
   all(path: string, ...handlers: RequestHandler[]): this;
   listen(port: number, callback?: () => void): Server;
   register(plugin: Plugin, options?: Record<string, unknown>): this | Promise<this>;

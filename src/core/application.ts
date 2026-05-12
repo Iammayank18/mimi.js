@@ -5,9 +5,17 @@ import { Router } from '../router';
 import { createFinalHandler } from './finalhandler';
 import { createRegister } from '../plugins';
 import loadRoutes from '../router-loader';
-import type { MimiApp, Middleware, RequestHandler, Route, AppErrorHandler } from '../types';
+import { setupSwagger } from '../swagger';
+import type {
+  MimiApp,
+  MimiOptions,
+  Middleware,
+  RequestHandler,
+  Route,
+  AppErrorHandler,
+} from '../types';
 
-export function mimi(): MimiApp {
+export function mimi(options?: MimiOptions): MimiApp {
   const router = new Router();
   let errorHandler: AppErrorHandler | undefined;
 
@@ -51,6 +59,10 @@ export function mimi(): MimiApp {
   loadRoutes(mimiApp).catch(() => {
     // loadRoutes logs internally; don't crash the app
   });
+
+  if (options?.docs) {
+    setupSwagger(mimiApp, options.docs);
+  }
 
   return mimiApp;
 }

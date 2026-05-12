@@ -37,6 +37,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [2.0.3] — 2026-05-12
+
+### Added
+- **Schema-based route documentation** — pass a `RouteSchema` object (with Zod schemas) as the second argument to any route method. The framework validates the request and generates the OpenAPI operation automatically. JSDoc `@openapi` comment parsing has been removed.
+- **`mimi({ docs })` zero-config option** — pass a `docs` key to the `mimi()` factory to enable Swagger UI with no extra imports or function calls. `setupSwagger()` is still available for manual control.
+- **Local Swagger UI assets** — `swagger-ui-dist` is served from the local npm package at `/api-docs/_static`. No CDN, no `unpkg.com`, no Content Security Policy overrides needed.
+- **Security scheme support** — define `components.securitySchemes` in the `docs` config and add `security: [{ schemeName: [] }]` on individual routes to show the lock icon and Authorize button in Swagger UI.
+- **Global security** — pass `security` at the top level of `docs` to apply it to all routes at once.
+- **`MimiOptions` type** — exported interface for the `mimi()` factory options.
+- **`SwaggerOptions` / `SecurityScheme` types** — exported interfaces for swagger configuration.
+- **Additional `MimiRequest` methods** — `header()`, `accepts()`, `acceptsCharsets()`, `acceptsEncodings()`, `acceptsLanguages()`, `range()`, and properties `host`, `ips`, `protocol`, `secure`, `xhr`, `fresh`, `stale`, `subdomains`.
+- **Additional `MimiResponse` methods** — `header()`, `get()`, `contentType()`, `jsonp()`, `sendFile()`, `download()`, `attachment()`, `append()`, `location()`, `vary()`, `links()`, `cookie()`, `clearCookie()`, `format()`.
+
+### Fixed
+- **Router URL stripping bug** — `req.url` was incorrectly stripped for route layers as well as middleware layers, causing every route's trie lookup to fail when mounted under a prefix. Stripping now only applies to `use()` middleware layers (identified via `layer.route`).
+- **XSS in Swagger HTML** — `options.info.title` is now escaped before being injected into the `<title>` tag.
+- **Helpful install error** — when `swagger-ui-dist` is not installed, the framework now throws a clear message with the `npm install` command instead of crashing with `MODULE_NOT_FOUND`.
+- **Double registration guard** — calling both `mimi({ docs })` and `setupSwagger()` no longer registers the `/api-docs` routes twice.
+
+---
+
 ## [2.0.0] — 2024
 
 ### Breaking Changes
@@ -57,7 +78,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - **Password hashing** — `hashPassword`, `comparePassword` (bcrypt).
 - **MongoDB adapter** — `mongodbManager` singleton.
 - **SQLite adapter** — `SQLiteManager` class (Sequelize + sqlite3).
-- **Swagger UI** — `setupSwagger(app, options)` serves `/api-docs` from JSDoc annotations.
+- **Swagger UI** — `setupSwagger(app, options)` serves `/api-docs`. Zod-schema-based route docs added in v2.0.3.
 - **Auto route loader** — scans `./routes/*.js` at startup and mounts each file.
 - **Plugin system** — `app.register(plugin, options)` with async support.
 - **`async` handler support** — errors from async handlers automatically forwarded to `next`.

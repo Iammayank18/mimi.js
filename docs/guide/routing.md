@@ -261,6 +261,57 @@ To customise the 404 body, intercept it in `setErrorHandler` by checking the sta
 
 ---
 
+## Route Schema — Validation & Swagger Docs
+
+Pass a `RouteSchema` object as the **second argument** to any route method to get automatic request validation and OpenAPI documentation — no JSDoc, no separate YAML, no extra setup.
+
+```ts
+import { Router } from 'mimi.js';
+import { z } from 'zod';
+
+const router = new Router();
+
+const UserSchema = z.object({
+  id:    z.string().uuid(),
+  name:  z.string().min(1),
+  email: z.string().email(),
+});
+
+// GET with path parameter + response schema
+router.get('/users/:id', {
+  summary:  'Get user by ID',
+  tags:     ['users'],
+  params:   z.object({ id: z.string().uuid() }),
+  response: { 200: UserSchema, 404: z.object({ error: z.string() }) },
+}, async (req, res) => {
+  // req.params.id is validated as a UUID before this runs
+  res.json({ id: req.params.id, name: 'Alice', email: 'alice@example.com' });
+});
+
+// POST with request body validation
+router.post('/users', {
+  summary:  'Create a user',
+  tags:     ['users'],
+  body:     UserSchema.omit({ id: true }),
+  response: { 201: UserSchema, 422: z.object({ error: z.string(), issues: z.array(z.any()) }) },
+}, async (req, res) => {
+  res.status(201).json({ id: crypto.randomUUID(), ...req.body });
+});
+```
+
+**How validation works:**
+- Invalid params/query/headers/body → automatic `422` response with Zod's error `issues`
+- Valid request → handler runs with already-parsed, typed values
+- Routes without a schema object continue to work exactly as before
+
+**How docs are generated:**
+- Call `setupSwagger(app, { info: { title: 'My API', version: '1.0.0' } })` once at startup
+- Every route with a schema automatically appears in Swagger UI at `/api-docs`
+
+See [Swagger / OpenAPI](/guide/swagger) for the full `RouteSchema` reference and setup guide.
+
+---
+
 ## Passing Data Between Handlers
 
 Use `req.locals` to share data across handlers in the same request:

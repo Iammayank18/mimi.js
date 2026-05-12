@@ -3,6 +3,7 @@ export { mimi } from './core/application';
 
 export { setupSwagger } from './swagger';
 export type { SwaggerOptions } from './swagger';
+export type { MimiOptions } from './types';
 
 export {
   json,
@@ -32,6 +33,9 @@ export { default as loadRoutes } from './router-loader';
 export { mongodbManager } from './db/mongodb';
 export { SQLiteManager } from './db/sqllite';
 
+export { registry } from './schema';
+export type { RouteRecord } from './schema';
+
 export type {
   MimiApp,
   MimiRequest,
@@ -43,4 +47,6 @@ export type {
   Middleware,
   Plugin,
   Route,
+  RouteSchema,
+  ZodSchema,
 } from './types';

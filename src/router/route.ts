@@ -1,5 +1,7 @@
 import { Layer } from './layer';
-import type { MimiRequest, MimiResponse, NextFunction, RequestHandler } from '../types';
+import { registry } from '../schema/registry';
+import { createValidator } from '../schema/validator';
+import type { MimiRequest, MimiResponse, NextFunction, RequestHandler, RouteSchema } from '../types';
 
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'all'] as const;
 
@@ -51,7 +53,31 @@ export class Route {
 
 // Dynamically add HTTP method shortcuts to Route.prototype
 HTTP_METHODS.forEach((method) => {
-  (Route.prototype as any)[method] = function (...handlers: RequestHandler[]) {
+  (Route.prototype as any)[method] = function (
+    schemaOrHandler: RouteSchema | RequestHandler | undefined,
+    ...rest: RequestHandler[]
+  ) {
+    let schema: RouteSchema | undefined;
+    let handlers: RequestHandler[];
+
+    if (schemaOrHandler === undefined || schemaOrHandler === null) {
+      schema = undefined;
+      handlers = rest;
+    } else if (typeof schemaOrHandler === 'function') {
+      schema = undefined;
+      handlers = [schemaOrHandler, ...rest];
+    } else {
+      schema = schemaOrHandler as RouteSchema;
+      handlers = rest;
+    }
+
+    if (schema) {
+      registry.register(method === 'all' ? 'ALL' : method.toUpperCase(), this.path, schema);
+      const validatorLayer = new Layer('/', {}, createValidator(schema) as any);
+      if (method !== 'all') validatorLayer.method = method;
+      this.stack.push(validatorLayer);
+    }
+
     handlers.forEach((handler) => {
       const layer = new Layer('/', {}, handler);
       if (method !== 'all') {
@@ -62,6 +88,7 @@ HTTP_METHODS.forEach((method) => {
       }
       this.stack.push(layer);
     });
+
     return this;
   };
 });

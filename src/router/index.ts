@@ -7,6 +7,7 @@ import type {
   NextFunction,
   Middleware,
   Route as IRoute,
+  RouteSchema,
 } from '../types';
 
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'all'] as const;
@@ -83,8 +84,9 @@ export class Router {
       const path = req.path ?? '/';
       if (!layer.match(path)) return next(err);
 
-      // For use() middleware: strip the mount prefix from req.url
-      if (layer.path !== undefined && layer.path !== '/') {
+      // Strip the mount prefix only for use() middleware, not for route layers.
+      // Route layers (layer.route !== undefined) need req.url intact for trie lookup.
+      if (!layer.route && layer.path && layer.path !== '/') {
         const stripped = originalUrl.slice(layer.path.length) || '/';
         req.url = stripped;
       }
@@ -108,20 +110,41 @@ export class Router {
 
 // Dynamically add HTTP method shortcuts to Router.prototype
 HTTP_METHODS.forEach((method) => {
-  (Router.prototype as any)[method] = function (path: string, ...handlers: Middleware[]) {
+  (Router.prototype as any)[method] = function (
+    path: string,
+    ...args: (RouteSchema | Middleware)[]
+  ) {
+    const first = args[0];
+    const hasSchema =
+      first !== null &&
+      first !== undefined &&
+      typeof first === 'object' &&
+      typeof first !== 'function';
+
+    const schema = hasSchema ? (first as RouteSchema) : undefined;
+    const handlers = hasSchema ? args.slice(1) : args;
+
     const route = this.route(path);
-    (route as any)[method](...handlers);
+    (route as any)[method](schema, ...handlers);
     return this;
   };
 });
 
 export interface Router {
+  get(path: string, schema: RouteSchema, ...handlers: Middleware[]): this;
   get(path: string, ...handlers: Middleware[]): this;
+  post(path: string, schema: RouteSchema, ...handlers: Middleware[]): this;
   post(path: string, ...handlers: Middleware[]): this;
+  put(path: string, schema: RouteSchema, ...handlers: Middleware[]): this;
   put(path: string, ...handlers: Middleware[]): this;
+  patch(path: string, schema: RouteSchema, ...handlers: Middleware[]): this;
   patch(path: string, ...handlers: Middleware[]): this;
+  delete(path: string, schema: RouteSchema, ...handlers: Middleware[]): this;
   delete(path: string, ...handlers: Middleware[]): this;
+  head(path: string, schema: RouteSchema, ...handlers: Middleware[]): this;
   head(path: string, ...handlers: Middleware[]): this;
+  options(path: string, schema: RouteSchema, ...handlers: Middleware[]): this;
   options(path: string, ...handlers: Middleware[]): this;
+  all(path: string, schema: RouteSchema, ...handlers: Middleware[]): this;
   all(path: string, ...handlers: Middleware[]): this;
 }

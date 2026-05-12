@@ -2,7 +2,7 @@
  * mimijs — Todo API example
  *
  * Demonstrates: routing, middleware (cors, json, security),
- * JWT auth, request logging, and Swagger docs.
+ * JWT auth, request logging, Zod validation, and auto-generated Swagger docs.
  *
  * Run:  node examples/todo-api/index.js
  * Docs: http://localhost:3000/api-docs
@@ -15,37 +15,62 @@ const {
   cors,
   security,
   requestLogger,
-  setupSwagger,
   generateToken,
   hashPassword,
   comparePassword,
   authMiddleware,
 } = require('../../dist');
 
-const app = mimi();
+const { z } = require('zod');
+
+// ─── Schemas ────────────────────────────────────────────────────────────────
+
+const TodoSchema = z.object({
+  id: z.number().int().positive(),
+  userId: z.number().int().positive(),
+  title: z.string().min(1),
+  done: z.boolean(),
+  createdAt: z.iso.datetime(),
+});
+
+const CreateTodoSchema = z.object({
+  title: z.string().min(1),
+});
+
+const LoginSchema = z.object({
+  email: z.email(),
+  password: z.string().min(1),
+});
+
+const TokenSchema = z.object({
+  token: z.string(),
+});
+
+const ErrorSchema = z.object({ error: z.string() });
+
+// ─── App (docs auto-configured, no CSP setup needed) ───────────────────────
+
+const app = mimi({
+  docs: {
+    info: {
+      title: 'Todo API',
+      version: '1.0.0',
+      description: 'A simple todo API built with mimijs',
+    },
+    servers: [{ url: 'http://localhost:3000' }],
+    components: {
+      securitySchemes: {
+        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      },
+    },
+  },
+});
 
 // ─── Global middleware ──────────────────────────────────────────────────────
 
 app.use(cors({ origin: '*' }));
 app.use(security());
 app.use(json());
-
-// Swagger UI loads CSS, JS, and fonts from unpkg CDN — relax CSP for those routes only
-const swaggerCsp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://unpkg.com",
-  "style-src 'self' 'unsafe-inline' https://unpkg.com",
-  "font-src 'self' data: https://unpkg.com https://r2cdn.perplexity.ai",
-  "img-src 'self' data:",
-  "connect-src 'self' https://unpkg.com",
-  'worker-src blob:',
-].join('; ');
-
-app.use('/api-docs', security({ contentSecurityPolicy: swaggerCsp }));
-app.use('/api-docs', (_req, res, next) => {
-  res.removeHeader('X-Frame-Options'); // allow SwaggerUI iframe elements
-  next();
-});
 app.use(urlencoded());
 app.use(requestLogger);
 
@@ -57,199 +82,132 @@ let nextId = 1;
 
 // ─── Auth routes ───────────────────────────────────────────────────────────
 
-/**
- * @openapi
- * /auth/register:
- *   post:
- *     summary: Register a new user
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email:   { type: string, example: alice@example.com }
- *               password: { type: string, example: secret123 }
- *     responses:
- *       201: { description: User created }
- *       400: { description: Missing fields or email taken }
- */
-app.post('/auth/register', async (req, res) => {
-  const { email, password } = req.body;
+app.post(
+  '/auth/register',
+  {
+    summary: 'Register a new user',
+    tags: ['auth'],
+    body: LoginSchema,
+    response: { 201: TokenSchema, 400: ErrorSchema },
+  },
+  async (req, res) => {
+    const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ error: 'email and password are required' });
-  }
-  if (users.find((u) => u.email === email)) {
-    return res.status(400).json({ error: 'Email already registered' });
-  }
+    if (users.find((u) => u.email === email)) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
 
-  const hash = await hashPassword(password);
-  const user = { id: users.length + 1, email, hash };
-  users.push(user);
+    const hash = await hashPassword(password);
+    const user = { id: users.length + 1, email, hash };
+    users.push(user);
 
-  const token = generateToken({ id: user.id, email: user.email });
-  res.status(201).json({ token });
-});
+    const token = generateToken({ id: user.id, email: user.email });
+    res.status(201).json({ token });
+  },
+);
 
-/**
- * @openapi
- * /auth/login:
- *   post:
- *     summary: Log in and receive a JWT
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email:    { type: string }
- *               password: { type: string }
- *     responses:
- *       200: { description: JWT token }
- *       401: { description: Invalid credentials }
- */
-app.post('/auth/login', async (req, res) => {
-  const { email, password } = req.body;
-  const user = users.find((u) => u.email === email);
+app.post(
+  '/auth/login',
+  {
+    summary: 'Log in and receive a JWT',
+    tags: ['auth'],
+    body: LoginSchema,
+    response: { 200: TokenSchema, 401: ErrorSchema },
+  },
+  async (req, res) => {
+    const { email, password } = req.body;
+    const user = users.find((u) => u.email === email);
 
-  if (!user || !(await comparePassword(password, user.hash))) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
+    if (!user || !(await comparePassword(password, user.hash))) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
-  const token = generateToken({ id: user.id, email: user.email });
-  res.json({ token });
-});
+    const token = generateToken({ id: user.id, email: user.email });
+    res.json({ token });
+  },
+);
 
 // ─── Todo routes (protected) ────────────────────────────────────────────────
 
-/**
- * @openapi
- * /todos:
- *   get:
- *     summary: List todos for the authenticated user
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Array of todos
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:        { type: integer, example: 1 }
- *                   userId:    { type: integer, example: 1 }
- *                   title:     { type: string, example: Buy groceries }
- *                   done:      { type: boolean, example: false }
- *                   createdAt: { type: string, format: date-time }
- */
-app.get('/todos', authMiddleware, (req, res) => {
-  const userTodos = todos.filter((t) => t.userId === req.user.id);
-  res.json(userTodos);
-});
+app.get(
+  '/todos',
+  {
+    summary: 'List todos for the authenticated user',
+    tags: ['todos'],
+    security: [{ bearerAuth: [] }],
+    response: { 200: z.array(TodoSchema) },
+  },
+  authMiddleware,
+  (req, res) => {
+    const userTodos = todos.filter((t) => t.userId === req.user.id);
+    res.json(userTodos);
+  },
+);
 
-/**
- * @openapi
- * /todos:
- *   post:
- *     summary: Create a todo
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [title]
- *             properties:
- *               title: { type: string, example: Buy groceries }
- *     responses:
- *       201: { description: Created todo }
- */
-app.post('/todos', authMiddleware, (req, res) => {
-  const { title } = req.body;
+app.post(
+  '/todos',
+  {
+    summary: 'Create a todo',
+    tags: ['todos'],
+    security: [{ bearerAuth: [] }],
+    body: CreateTodoSchema,
+    response: { 201: TodoSchema, 422: z.object({ error: z.string(), issues: z.array(z.any()) }) },
+  },
+  authMiddleware,
+  (req, res) => {
+    const todo = {
+      id: nextId++,
+      userId: req.user.id,
+      title: req.body.title.trim(),
+      done: false,
+      createdAt: new Date().toISOString(),
+    };
+    todos.push(todo);
+    res.status(201).json(todo);
+  },
+);
 
-  if (!title || typeof title !== 'string' || title.trim() === '') {
-    return res.status(400).json({ error: 'title is required' });
-  }
+app.patch(
+  '/todos/:id',
+  {
+    summary: "Toggle a todo's done status",
+    tags: ['todos'],
+    security: [{ bearerAuth: [] }],
+    params: z.object({ id: z.string() }),
+    response: { 200: TodoSchema, 404: ErrorSchema },
+  },
+  authMiddleware,
+  (req, res) => {
+    const id = Number(req.params.id);
+    const todo = todos.find((t) => t.id === id && t.userId === req.user.id);
 
-  const todo = {
-    id: nextId++,
-    userId: req.user.id,
-    title: title.trim(),
-    done: false,
-    createdAt: new Date().toISOString(),
-  };
-  todos.push(todo);
-  res.status(201).json(todo);
-});
+    if (!todo) return res.status(404).json({ error: 'Todo not found' });
 
-/**
- * @openapi
- * /todos/{id}:
- *   patch:
- *     summary: Toggle a todo's done status
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema: { type: integer }
- *         required: true
- *     responses:
- *       200: { description: Updated todo }
- *       404: { description: Not found }
- */
-app.patch('/todos/:id', authMiddleware, (req, res) => {
-  const id = Number(req.params.id);
-  const todo = todos.find((t) => t.id === id && t.userId === req.user.id);
+    todo.done = !todo.done;
+    res.json(todo);
+  },
+);
 
-  if (!todo) return res.status(404).json({ error: 'Todo not found' });
+app.delete(
+  '/todos/:id',
+  {
+    summary: 'Delete a todo',
+    tags: ['todos'],
+    security: [{ bearerAuth: [] }],
+    params: z.object({ id: z.string() }),
+    response: { 200: z.object({ deleted: z.boolean() }), 404: ErrorSchema },
+  },
+  authMiddleware,
+  (req, res) => {
+    const id = Number(req.params.id);
+    const idx = todos.findIndex((t) => t.id === id && t.userId === req.user.id);
 
-  todo.done = !todo.done;
-  res.json(todo);
-});
+    if (idx === -1) return res.status(404).json({ error: 'Todo not found' });
 
-/**
- * @openapi
- * /todos/{id}:
- *   delete:
- *     summary: Delete a todo
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema: { type: integer }
- *         required: true
- *     responses:
- *       200: { description: Deleted }
- *       404: { description: Not found }
- */
-app.delete('/todos/:id', authMiddleware, (req, res) => {
-  const id = Number(req.params.id);
-  const idx = todos.findIndex((t) => t.id === id && t.userId === req.user.id);
-
-  if (idx === -1) return res.status(404).json({ error: 'Todo not found' });
-
-  todos.splice(idx, 1);
-  res.json({ deleted: true });
-});
-
-// ─── Swagger docs ───────────────────────────────────────────────────────────
-
-setupSwagger(app, {
-  info: { title: 'Todo API', version: '1.0.0', description: 'A simple todo API built with mimijs' },
-  filesPattern: './examples/todo-api/index.js',
-});
+    todos.splice(idx, 1);
+    res.json({ deleted: true });
+  },
+);
 
 // ─── Health check ───────────────────────────────────────────────────────────
 

@@ -35,7 +35,7 @@ features:
 
   - icon: 📖
     title: Auto Swagger Docs
-    details: Add JSDoc comments to your routes — Swagger UI appears at /api-docs automatically. No extra config.
+    details: Pass a Zod schema to your route and Swagger UI appears at /api-docs automatically — no JSDoc, no YAML, no CDN. Add a security scheme for the auth lock icon in one line.
 
   - icon: 🧩
     title: Plugin System

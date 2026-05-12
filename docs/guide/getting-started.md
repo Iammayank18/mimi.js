@@ -123,6 +123,7 @@ LOG_LEVEL=info
 |---|---|
 | [Route Loader](/guide/route-loader) | Auto-load route files from `routes/` — zero wiring |
 | [Routing](/guide/routing) | Parameters, chaining, async handlers, 404s |
+| [Swagger / OpenAPI](/guide/swagger) | Auto-generate API docs from Zod schemas — no JSDoc |
 | [Middleware](/guide/middleware) | All built-in middleware with full options |
 | [Error Handling](/guide/error-handling) | Custom error responses and `setErrorHandler` |
 | [Authentication](/guide/auth) | JWT generation, verification, protected routes |
