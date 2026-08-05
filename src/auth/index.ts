@@ -1,3 +1,10 @@
-export { hashPassword, comparePassword, generateToken, verifyToken } from './authHelper';
-export type { TokenPayload } from './authHelper';
+export {
+  hashPassword,
+  comparePassword,
+  generateToken,
+  verifyToken,
+  invalidateToken,
+  setTokenStore,
+} from './authHelper';
+export type { TokenPayload, TokenStore } from './authHelper';
 export { authMiddleware } from './authMiddleware';

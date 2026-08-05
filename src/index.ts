@@ -12,6 +12,8 @@ export {
   security,
   serveStatic,
   requestLogger,
+  requestId,
+  logError,
   customParser,
 } from './middleware';
 export type {
@@ -24,8 +26,16 @@ export type {
 
 export { logger } from './middleware/logger';
 
-export { hashPassword, comparePassword, generateToken, verifyToken, authMiddleware } from './auth';
-export type { TokenPayload } from './auth';
+export {
+  hashPassword,
+  comparePassword,
+  generateToken,
+  verifyToken,
+  invalidateToken,
+  setTokenStore,
+  authMiddleware,
+} from './auth';
+export type { TokenPayload, TokenStore } from './auth';
 
 export { Router } from './router';
 export { default as loadRoutes } from './router-loader';
@@ -45,6 +55,8 @@ export type {
   AppErrorHandler,
   NextFunction,
   Middleware,
+  MiddlewareArg,
+  RouterLike,
   Plugin,
   Route,
   RouteSchema,

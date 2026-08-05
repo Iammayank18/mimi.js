@@ -116,6 +116,7 @@
   "peerDependencies": {
     "bcrypt": ">=5",
     "mongoose": ">=8",
+    "pino-pretty": ">=11",
     "sequelize": ">=6",
     "sqlite3": ">=5"
   },
@@ -124,6 +125,9 @@
       "optional": true
     },
     "mongoose": {
+      "optional": true
+    },
+    "pino-pretty": {
       "optional": true
     },
     "sequelize": {

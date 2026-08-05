@@ -9,7 +9,13 @@ import type { MimiResponse, CookieOptions, SendFileOptions } from '../types';
 
 const res = http.ServerResponse.prototype as unknown as MimiResponse;
 
-res.locals = {};
+// Per-instance locals — each response gets its own object, not a shared prototype reference
+Object.defineProperty(http.ServerResponse.prototype, 'locals', {
+  get(this: MimiResponse) { return (this as any)._locals ?? ((this as any)._locals = {}); },
+  set(this: MimiResponse, v: Record<string, unknown>) { (this as any)._locals = v; },
+  configurable: true,
+  enumerable: true,
+});
 
 // ─── Status ───────────────────────────────────────────────────────────────────
 
@@ -128,6 +134,14 @@ res.sendFile = function (
   options: SendFileOptions = {},
   callback?: (err?: Error) => void,
 ): void {
+  if (!options.root && !path.isAbsolute(filePath)) {
+    const err = new Error(
+      'res.sendFile() requires a "root" option when filePath is relative — ' +
+      'pass { root: path.join(__dirname, "public") } to prevent path traversal.',
+    );
+    if (callback) return callback(err);
+    throw err;
+  }
   const { headers, ...sendOptions } = options;
   const stream = send((this as any).req, filePath, sendOptions);
 
@@ -196,13 +210,30 @@ res.attachment = function (this: MimiResponse, filename?: string): MimiResponse 
 
 // ─── Redirect ─────────────────────────────────────────────────────────────────
 
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function safeReferer(req: any): string {
+  const referer = (req?.headers?.referer as string) || '';
+  if (!referer) return '/';
+  try {
+    const ref = new URL(referer);
+    const host = req?.headers?.host as string | undefined;
+    return host && ref.host === host ? referer : '/';
+  } catch {
+    return '/';
+  }
+}
+
 res.redirect = function (this: MimiResponse, url: string, status = 302): void {
   if (url === 'back') {
-    url = ((this as any).req?.headers?.referer as string) || '/';
+    url = safeReferer((this as any).req);
   }
   this.statusCode = status;
   this.setHeader('Location', url);
-  const body = `<p>Redirecting to <a href="${url}">${url}</a></p>`;
+  const safe = escapeHtml(url);
+  const body = `<p>Redirecting to <a href="${safe}">${safe}</a></p>`;
   this.setHeader('Content-Type', 'text/html; charset=utf-8');
   this.setHeader('Content-Length', Buffer.byteLength(body));
   this.end(body);
@@ -212,7 +243,7 @@ res.redirect = function (this: MimiResponse, url: string, status = 302): void {
 
 res.location = function (this: MimiResponse, url: string): MimiResponse {
   if (url === 'back') {
-    url = ((this as any).req?.headers?.referer as string) || '/';
+    url = safeReferer((this as any).req);
   }
   this.setHeader('Location', url);
   return this;

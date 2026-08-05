@@ -21,31 +21,42 @@ export default async function loadRoutes(app: MimiApp): Promise<void> {
     }
 
     const files = fs.readdirSync(routesPath);
+    const resolvedRoutesDir = path.resolve(routesPath);
 
     for (const file of files) {
       if (!file.endsWith('.js') && !file.endsWith('.ts')) continue;
       const filePath = path.join(routesPath, file);
+      const resolvedFilePath = path.resolve(filePath);
 
-      if (isModule) {
-        const routeModule = (await import(filePath)) as { default?: unknown };
-        const def = routeModule.default;
-        if (typeof def === 'function' && !isRouter(def)) {
-          (def as (app: MimiApp) => void)(app);
-        } else if (isRouter(def)) {
-          (app as any).use((def as any).handle.bind(def));
+      if (!resolvedFilePath.startsWith(resolvedRoutesDir + path.sep)) {
+        logger.warn({ file: resolvedFilePath }, 'Skipping route file outside routes directory');
+        continue;
+      }
+
+      try {
+        if (isModule) {
+          const routeModule = (await import(filePath)) as { default?: unknown };
+          const def = routeModule.default;
+          if (typeof def === 'function' && !isRouter(def)) {
+            (def as (app: MimiApp) => void)(app);
+          } else if (isRouter(def)) {
+            (app as any).use((def as any).handle.bind(def));
+          }
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const route = require(filePath) as unknown;
+          const def = (route as any)?.default ?? route;
+          if (isRouter(def)) {
+            (app as any).use((def as any).handle.bind(def));
+          } else if (typeof def === 'function') {
+            (def as (app: MimiApp) => void)(app);
+          }
         }
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const route = require(filePath) as unknown;
-        const def = (route as any)?.default ?? route;
-        if (isRouter(def)) {
-          (app as any).use((def as any).handle.bind(def));
-        } else if (typeof def === 'function') {
-          (def as (app: MimiApp) => void)(app);
-        }
+      } catch (fileError) {
+        logger.error({ file, err: String(fileError) }, `Failed to load route file: ${file}`);
       }
     }
   } catch (error) {
-    logger.error(String(error));
+    logger.error({ err: String(error) }, 'Route loader failed');
   }
 }

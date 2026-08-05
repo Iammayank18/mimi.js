@@ -127,31 +127,22 @@ type AppErrorHandler = (err: Error, req: MimiRequest, res: MimiResponse) => void
 ## Practical Example: API Error Normalizer
 
 ```ts
-import mimi, { json, requestLogger, logger } from 'mimi.js';
+import mimi, { json, requestId, logError } from 'mimi.js';
 
-const app = mimi();
+const app = mimi({ logger: true });  // auto-wires requestLogger
+app.use(requestId());                // sets req.id on every request
 app.use(json());
-app.use(requestLogger);
-
-app.use((req, res, next) => {
-  req.locals.requestId = crypto.randomUUID();
-  next();
-});
 
 app.setErrorHandler((err, req, res) => {
   const status = (err as any).status ?? (err as any).statusCode ?? 500;
   const isClientError = status >= 400 && status < 500;
-  const requestId = req.locals.requestId as string;
 
-  logger.error({ err, requestId, url: req.url, method: req.method });
+  logError(err, req, status);  // logs reqId, method, url, stack — never leaks to client
 
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify({
+  res.status(status).json({
     error: isClientError ? err.message : 'An unexpected error occurred.',
-    requestId,
-    status,
-  }));
+    requestId: req.id,
+  });
 });
 
 app.listen(3000);

@@ -93,7 +93,10 @@ export class Layer {
       return next(err);
     }
     try {
-      fn(err, req, res, next);
+      const result = fn(err, req, res, next);
+      if (result && typeof result.catch === 'function') {
+        result.catch(next);
+      }
     } catch (e) {
       next(e as Error);
     }

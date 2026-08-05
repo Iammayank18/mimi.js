@@ -37,7 +37,7 @@ Order matters — middleware runs in registration order.
 
 ## Built-in Middleware
 
-mimi.js ships 7 production-ready middleware factories.
+mimi.js ships 9 production-ready middleware factories.
 
 ### `json(opts?)`
 
@@ -151,18 +151,70 @@ app.use('/assets', serveStatic('./static', { maxAge: 86400 }));
 
 ### `requestLogger`
 
-Logs each request's method, URL, status, and elapsed time as structured JSON (pino). Not a factory — import directly.
+Logs each request's method, URL, status, and elapsed time using pino. Not a factory — import directly, or let `mimi({ logger: true })` auto-wire it for you.
 
 ```ts
 import { requestLogger } from 'mimi.js';
 app.use(requestLogger);
 ```
 
-```json
-{ "level": 30, "method": "GET", "url": "/users/1", "status": 200, "ms": 4 }
+When `requestId()` is mounted upstream, all log lines include `reqId`:
+
+```
+10:42:15 INFO  GET /users/1 → 200 (4ms)  { reqId: "a3b2c1d0-...", status: 200, ms: 4 }
 ```
 
-Control log level with the `LOG_LEVEL` environment variable (default `info`).
+**Auto-wiring via `mimi({ logger })`** — the preferred approach for most apps:
+
+```ts
+const app = mimi({ logger: true });              // auto-wire + detect pretty/JSON from NODE_ENV
+const app = mimi({ logger: { pretty: true } });  // force pretty even in production
+```
+
+No manual `app.use(requestLogger)` needed when using the `logger` option.
+
+Control the log level with the `LOG_LEVEL` environment variable (default: `info`).
+
+---
+
+### `requestId()`
+
+Assigns a unique ID to every request. Reads the `x-request-id` header if present, generates a UUID v4 otherwise. Sets `req.id` and echoes the ID back as the `x-request-id` response header.
+
+```ts
+import { requestId } from 'mimi.js';
+
+app.use(requestId());
+```
+
+When `requestLogger` is also active, `req.id` is automatically included in every log line as `reqId`. Useful for correlating logs across multiple services.
+
+Without `requestId()`, nothing breaks — `reqId` is simply absent from logs.
+
+---
+
+### `logError(err, req, statusCode)`
+
+Structured server-side error logger. Use inside `setErrorHandler` or custom error middleware. Never exposes the stack trace to clients — logs it server-side with full context.
+
+```ts
+import { logError } from 'mimi.js';
+
+app.setErrorHandler((err, req, res) => {
+  const status = (err as any).status ?? 500;
+  logError(err, req, status);   // logs reqId, method, url, stack
+  res.status(status).json({
+    error: status < 500 ? err.message : 'An unexpected error occurred.',
+    requestId: req.id,
+  });
+});
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `err` | `Error` | The error to log |
+| `req` | `MimiRequest` | The current request (for method, url, reqId) |
+| `statusCode` | `number` | HTTP status code to include in the log |
 
 ---
 

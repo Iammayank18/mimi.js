@@ -33,8 +33,20 @@ Returns a `MimiApp` instance. Each call creates an independent app.
 ```typescript
 interface MimiOptions {
   docs?: SwaggerOptions;
+  logger?: boolean | { pretty?: boolean };
+  keepAliveTimeout?: number;
+  requestTimeout?: number;
+  processErrorHandlers?: boolean;
 }
 ```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `docs` | `SwaggerOptions` | — | Enable Swagger UI at `/api-docs` (see [SwaggerOptions](#swaggeroptions)) |
+| `logger` | `boolean \| { pretty?: boolean }` | — | Auto-wire `requestLogger`. `true` = detect pretty/JSON from `NODE_ENV`; `{ pretty: true }` = force pretty |
+| `keepAliveTimeout` | `number` | `65000` | Socket keep-alive timeout in ms. Should exceed your reverse-proxy timeout (nginx default 60 s) |
+| `requestTimeout` | `number` | — | Per-socket idle timeout in ms. Idle sockets are destroyed after this many ms |
+| `processErrorHandlers` | `boolean` | `true` | Wire `unhandledRejection` and `uncaughtException` process handlers. Set to `false` to manage these yourself |
 
 Pass `docs` to enable Swagger UI at `/api-docs` and the raw OpenAPI spec at `/api-docs/swagger.json`. Assets are served from the local `swagger-ui-dist` package — no CDN, no CSP setup needed.
 
@@ -87,6 +99,27 @@ app.route('/users/:id')
   .get({ params: z.object({ id: z.string().uuid() }) }, getUser)
   .put(updateUser)
   .delete(deleteUser);
+```
+
+### `app.set(key, value)` → `MimiApp`
+
+Express-compatible settings store. Required for third-party middleware (like `express-rate-limit`) that call `app.get('trust proxy')` to read app settings.
+
+```typescript
+app.set('trust proxy', 1);
+```
+
+### `app.close([callback])` → `void`
+
+Closes all HTTP servers created by `app.listen()`. Safe to call multiple times. Use in graceful shutdown handlers.
+
+```typescript
+process.on('SIGTERM', () => {
+  app.close(() => {
+    console.log('Server closed cleanly');
+    process.exit(0);
+  });
+});
 ```
 
 ### `app.listen(port, [callback])` → `http.Server`
@@ -429,11 +462,36 @@ app.use(serveStatic('./public', { maxAge: 86400, index: 'index.html' }));
 
 ### `requestLogger`
 
-Log each request (method, url, status, elapsed ms) using pino. Not a factory — import directly.
+Log each request (method, url, status, elapsed ms) using pino. Not a factory — import directly, or use `mimi({ logger: true })` to auto-wire it.
 
 ```typescript
 import { requestLogger } from 'mimi.js';
 app.use(requestLogger);
+```
+
+### `requestId()` → `RequestHandler`
+
+Assigns a unique ID (`req.id`) to every request. Reads `x-request-id` if present, generates a UUID v4 otherwise. Echoes the ID back as the `x-request-id` response header.
+
+```typescript
+import { requestId } from 'mimi.js';
+app.use(requestId());
+```
+
+When `requestLogger` is active, `req.id` is automatically included in all log lines as `reqId`.
+
+### `logError(err, req, statusCode)` → `void`
+
+Logs a structured error server-side (method, url, reqId, stack). Never exposes the stack trace to clients. Use inside `setErrorHandler`.
+
+```typescript
+import { logError } from 'mimi.js';
+
+app.setErrorHandler((err, req, res) => {
+  const status = (err as any).status ?? 500;
+  logError(err, req, status);
+  res.status(status).json({ error: err.message });
+});
 ```
 
 ### `customParser`
@@ -505,6 +563,39 @@ Reads `Authorization: Bearer <token>`, verifies it, and sets `(req as any).user`
 app.get('/me', authMiddleware, (req, res) => {
   res.json({ user: (req as any).user });
 });
+```
+
+### `invalidateToken(userId)` → `Promise<void>`
+
+Revokes all tokens for a user. After this call, `verifyToken` will reject every previously-issued token for that user.
+
+```typescript
+await invalidateToken(42);
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `userId` | `string \| number` | The user whose tokens should be revoked |
+
+### `setTokenStore(store)` → `void`
+
+Replace the default in-memory token version store with a custom implementation. Call once at startup before issuing any tokens.
+
+```typescript
+import { setTokenStore } from 'mimi.js';
+import type { TokenStore } from 'mimi.js';
+
+setTokenStore(myRedisStore);
+```
+
+### `TokenStore`
+
+```typescript
+interface TokenStore {
+  set(userId: string, version: string): void | Promise<void>;
+  get(userId: string): string | null | Promise<string | null>;
+  invalidate(userId: string): void | Promise<void>;
+}
 ```
 
 ### `TokenPayload`
@@ -681,6 +772,7 @@ import type {
 
   // Auth
   TokenPayload,
+  TokenStore,       // pluggable token version store interface
 
   // Plugin
   Plugin,           // (app, options) => void | Promise<void>

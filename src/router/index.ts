@@ -6,6 +6,7 @@ import type {
   MimiResponse,
   NextFunction,
   Middleware,
+  MiddlewareArg,
   Route as IRoute,
   RouteSchema,
 } from '../types';
@@ -13,21 +14,39 @@ import type {
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'all'] as const;
 const ALL_HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const;
 
+const ROUTE_SCHEMA_KEYS = new Set([
+  'body',
+  'params',
+  'query',
+  'headers',
+  'response',
+  'summary',
+  'description',
+  'tags',
+  'deprecated',
+  'security',
+]);
+
+function isRouteSchema(val: unknown): boolean {
+  if (!val || typeof val !== 'object' || typeof val === 'function') return false;
+  return Object.keys(val as object).some((k) => ROUTE_SCHEMA_KEYS.has(k));
+}
+
 export class Router {
   stack: Layer[] = [];
   private trie = FindMyWay({ ignoreTrailingSlash: true });
   private _routeMap = new Map<string, Route>();
 
-  use(path: string | Middleware, ...fns: Middleware[]): this {
+  use(path: string | MiddlewareArg, ...fns: MiddlewareArg[]): this {
     let mountPath: string;
-    let callbacks: Middleware[];
+    let callbacks: MiddlewareArg[];
 
-    if (typeof path === 'function') {
-      mountPath = '/';
-      callbacks = [path, ...fns];
-    } else {
+    if (typeof path === 'string') {
       mountPath = path;
       callbacks = fns;
+    } else {
+      mountPath = '/';
+      callbacks = [path, ...fns];
     }
 
     callbacks.forEach((fn) => {
@@ -115,11 +134,7 @@ HTTP_METHODS.forEach((method) => {
     ...args: (RouteSchema | Middleware)[]
   ) {
     const first = args[0];
-    const hasSchema =
-      first !== null &&
-      first !== undefined &&
-      typeof first === 'object' &&
-      typeof first !== 'function';
+    const hasSchema = isRouteSchema(first);
 
     const schema = hasSchema ? (first as RouteSchema) : undefined;
     const handlers = hasSchema ? args.slice(1) : args;

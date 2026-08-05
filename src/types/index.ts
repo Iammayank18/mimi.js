@@ -46,6 +46,19 @@ export interface SwaggerOptions {
 
 export interface MimiOptions {
   docs?: SwaggerOptions;
+  /** Per-request socket idle timeout in ms. Applied to every HTTP server created by app.listen(). */
+  requestTimeout?: number;
+  /** TCP keep-alive timeout in ms. Should exceed your reverse-proxy's keep-alive (nginx default 60s). Defaults to 65 000. */
+  keepAliveTimeout?: number;
+  /** Wire process-level unhandledRejection / uncaughtException handlers. Defaults to true. */
+  processErrorHandlers?: boolean;
+  /**
+   * Auto-register the request logger middleware.
+   * - `true` — enable with defaults (pretty in dev, JSON in prod)
+   * - `{ pretty: true }` — force pretty-print regardless of NODE_ENV
+   * - `{ pretty: false }` — force JSON regardless of NODE_ENV
+   */
+  logger?: boolean | { pretty?: boolean };
 }
 
 export interface ZodSchema {
@@ -88,6 +101,10 @@ export interface SendFileOptions {
 }
 
 export interface MimiRequest extends IncomingMessage {
+  /** Unique request ID — populated by the requestId() middleware or set manually. */
+  id: string;
+  /** Reference to the mimi application instance. */
+  app: MimiApp;
   params: Record<string, string>;
   query: Record<string, string>;
   body: unknown;
@@ -167,9 +184,15 @@ export type ErrorHandler = (
   req: MimiRequest,
   res: MimiResponse,
   next: NextFunction,
-) => void;
+) => void | Promise<void>;
 
 export type Middleware = RequestHandler | ErrorHandler;
+
+export interface RouterLike {
+  handle(req: MimiRequest, res: MimiResponse, next: NextFunction): void;
+}
+
+export type MiddlewareArg = Middleware | RouterLike;
 
 export interface LayerOptions {
   end?: boolean;
@@ -205,8 +228,10 @@ export type AppErrorHandler = (
 ) => void | Promise<void>;
 
 export interface MimiApp {
-  use(path: string, ...handlers: Middleware[]): this;
-  use(...handlers: Middleware[]): this;
+  use(path: string, ...handlers: MiddlewareArg[]): this;
+  use(...handlers: MiddlewareArg[]): this;
+  /** Gracefully close all servers opened via app.listen(). */
+  close(callback?: (err?: Error) => void): void;
   route(path: string): Route;
   get(path: string, schema: RouteSchema, ...handlers: RequestHandler[]): this;
   get(path: string, ...handlers: RequestHandler[]): this;

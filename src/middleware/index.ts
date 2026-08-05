@@ -10,6 +10,7 @@ export type { SecurityOptions } from './security';
 export { serveStatic } from './static';
 export type { StaticOptions } from './static';
 
-export { requestLogger, logger } from './logger';
+export { requestLogger, logger, logError } from './logger';
+export { requestId } from './requestId';
 
 export { customParser } from '../parsers/customParser';

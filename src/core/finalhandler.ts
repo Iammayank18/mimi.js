@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { MimiRequest, MimiResponse, AppErrorHandler } from '../types';
+import { logError } from '../middleware/logger';
 
 export function createFinalHandler(
   req: IncomingMessage,
@@ -11,22 +12,28 @@ export function createFinalHandler(
 
     if (err) {
       const error = typeof err === 'string' ? new Error(err) : err;
+      const rawStatus = (error as any).status ?? (error as any).statusCode ?? 500;
+      const status =
+        typeof rawStatus === 'number' && rawStatus >= 100 && rawStatus <= 599 ? rawStatus : 500;
+
+      // Always log server errors; log client errors at warn level via logError
+      logError(error, req as MimiRequest, status);
 
       if (errorHandler) {
         try {
           const result = errorHandler(error, req as MimiRequest, res as MimiResponse);
           if (result && typeof (result as Promise<void>).catch === 'function') {
             (result as Promise<void>).catch(() => {
-              if (!res.headersSent) sendDefaultError(res, error);
+              if (!res.headersSent) sendDefaultError(res, error, status);
             });
           }
         } catch {
-          if (!res.headersSent) sendDefaultError(res, error);
+          if (!res.headersSent) sendDefaultError(res, error, status);
         }
         return;
       }
 
-      sendDefaultError(res, error);
+      sendDefaultError(res, error, status);
       return;
     }
 
@@ -42,10 +49,7 @@ export function createFinalHandler(
   };
 }
 
-function sendDefaultError(res: ServerResponse, error: Error): void {
-  const rawStatus = (error as any).status ?? (error as any).statusCode ?? 500;
-  const status =
-    typeof rawStatus === 'number' && rawStatus >= 100 && rawStatus <= 599 ? rawStatus : 500;
+function sendDefaultError(res: ServerResponse, error: Error, status: number): void {
   const isClientError = status >= 400 && status < 500;
   const message = isClientError ? error.message || 'Bad Request' : 'Internal Server Error';
   res.statusCode = status;
