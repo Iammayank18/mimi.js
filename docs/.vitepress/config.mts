@@ -38,6 +38,12 @@ export default defineConfig({
           ],
         },
         {
+          text: 'Agent-Native',
+          items: [
+            { text: 'Actions for humans & agents', link: '/guide/agent-native' },
+          ],
+        },
+        {
           text: 'Core Concepts',
           items: [
             { text: 'Routing', link: '/guide/routing' },

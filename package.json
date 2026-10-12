@@ -1,7 +1,7 @@
 {
   "name": "mimi.js",
   "version": "2.0.5",
-  "description": "Production-ready Node.js web framework — Express-compatible, TypeScript-first, built for speed.",
+  "description": "The Node.js API framework for humans and AI agents \u2014 Express-compatible, TypeScript-first, MCP built in.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -54,7 +54,14 @@
     "swagger",
     "openapi",
     "radix-router",
-    "fastify-like"
+    "fastify-like",
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "agent-native",
+    "llms-txt",
+    "idempotency",
+    "human-in-the-loop"
   ],
   "author": "Mayank <github.com/iammayank18>",
   "contributors": [
@@ -108,7 +115,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3",
     "vitepress": "^1.6.4",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.4",
+    "zod": "^4.6.7"
   },
   "engines": {
     "node": ">= 16"

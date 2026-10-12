@@ -62,3 +62,20 @@ export type {
   RouteSchema,
   ZodSchema,
 } from './types';
+
+// ── Agent-native layer ──────────────────────────────────────────────
+export { agent, AgentKit, ActionError, MemoryStore, MCP_VERSIONS } from './agent';
+export type {
+  ActionSpec,
+  ActionContext,
+  AgentOptions,
+  Caller,
+  CallOutcome,
+  Effect,
+  KVStore,
+  Plan,
+  Problem,
+  Receipt,
+  Suggestion,
+  ApprovalRecord,
+} from './agent';

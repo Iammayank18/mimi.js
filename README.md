@@ -26,6 +26,47 @@
 
 ---
 
+## 🤖 New: Agent-native actions
+
+Your next API user is an AI agent. Define an action once, and mimi serves it as a **REST route, an MCP tool, `/.well-known/agent.json` and `/llms.txt`**. Every call gets the safety contract agents need:
+
+```ts
+import mimi, { agent } from 'mimi.js';
+import { z } from 'zod';
+
+const app = mimi();
+const ai = agent(app, { name: 'Acme Store', budgets: { default: { spendPerDay: 500 } } });
+
+ai.action('refundOrder', {
+  description: 'Refund part or all of an order to the original card.',
+  http: 'POST /orders/:orderId/refund',
+  effect: 'spend',
+  input: z.object({ orderId: z.string(), amount: z.number().positive() }),
+  cost: (i) => i.amount,
+  approval: (i) => i.amount > 100 && 'Refunds over $100 need a human.',
+  async run(input, ctx) {
+    await ctx.effect(`Refund $${input.amount}`, () => payments.refund(input));
+    return { ok: true };
+  },
+  undo: (input) => payments.reverse(input),
+});
+
+app.listen(3000); // MCP at /mcp
+```
+
+- **Dry run / plan mode** on every action (`?dryRun=true`, `_dryRun`): see the effects, cost and approval needs before anything happens
+- **Built-in idempotency**, plus auto-dedupe when an agent double-fires
+- **Human approval gates**: the exact planned call is parked and executed only after a human approves it
+- **Recoverable errors** (RFC 9457) with `fix`, `retriable`, `suggest` and a valid `example`
+- **Receipts + undo** for every write
+- **Per-agent identity, rate limits, spend budgets** and an audit log
+- **Intent search + progressive MCP disclosure** for large APIs
+- **Agent-DX insights**: where agents fail on your API and what to change
+
+👉 [Agent-native guide](docs/guide/agent-native.md) · [Example store](examples/agent-store)
+
+---
+
 ## Installation
 
 ```bash
