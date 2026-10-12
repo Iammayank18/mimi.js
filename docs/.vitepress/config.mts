@@ -41,6 +41,7 @@ export default defineConfig({
           text: 'Agent-Native',
           items: [
             { text: 'Actions for humans & agents', link: '/guide/agent-native' },
+            { text: 'Customising & plugins', link: '/guide/agent-plugins' },
           ],
         },
         {

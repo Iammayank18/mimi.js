@@ -15,6 +15,7 @@ Full changelog with guides: [iammayank18.github.io/mimi.js/changelog](https://ia
 - mongoose/sequelize/bcrypt moved to optional peer deps — −20 MB RSS
 
 ### Features
+- **Agent plugins**: `ai.use(plugin)` with `setup`, `onRegister`, `beforeCall`, `approval`, `afterCall`, `onEvent`, custom MCP `tools` and `routes`; options `rank`, `agentPatterns`, `formatResponse`, `problemBaseUrl`; built-in `redact`, `scopes`, `approvalRule`, `requireUndo`, `auditLog`, `cacheReads`
 - **Agent-native actions** — `agent(app).action(name, spec)`: one definition served as REST, MCP (`/mcp`), `/.well-known/agent.json` and `/llms.txt`, with dry-run plans (`ctx.effect`), idempotency + agent auto-dedupe, human approval gates, RFC 9457 recoverable errors, receipts/undo, per-agent rate & spend budgets, intent search, progressive MCP disclosure, audit log and agent-DX insights
 - `app.setErrorHandler(fn)` — global structured error handler
 - `app.addHook(name, fn)` — 7 lifecycle hooks (onRequest → onClose)

@@ -43,7 +43,7 @@ export async function identifyCaller(
   const ua = (header(req, 'user-agent') ?? '').toLowerCase();
   const explicit = header(req, 'x-agent-id');
   const signatureAgent = header(req, 'signature-agent')?.replace(/^"|"$/g, '');
-  const known = KNOWN_AGENTS.find(([re]) => re.test(ua));
+  const known = [...(opts.agentPatterns ?? []), ...KNOWN_AGENTS].find(([re]) => re.test(ua));
 
   if (via === 'mcp' || explicit || signatureAgent || known) {
     const id = explicit ?? signatureAgent ?? (known ? known[1].toLowerCase().replace(/\s+/g, '-') : 'mcp-client');

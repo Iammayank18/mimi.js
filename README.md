@@ -62,8 +62,9 @@ app.listen(3000); // MCP at /mcp
 - **Per-agent identity, rate limits, spend budgets** and an audit log
 - **Intent search + progressive MCP disclosure** for large APIs
 - **Agent-DX insights**: where agents fail on your API and what to change
+- **Fully customisable**: plugins hook into every call (`beforeCall`, `approval`, `afterCall`, `onEvent`), add MCP tools and routes, and swap storage, identity, search and response shape. Built-ins: `redact`, `scopes`, `approvalRule`, `requireUndo`, `auditLog`, `cacheReads`
 
-👉 [Agent-native guide](docs/guide/agent-native.md) · [Example store](examples/agent-store)
+👉 [Agent-native guide](docs/guide/agent-native.md) · [Plugins & customising](docs/guide/agent-plugins.md) · [Example store](examples/agent-store)
 
 ---
 

@@ -61,8 +61,13 @@ function wantsEnvelope(req: MimiRequest, kind: string) {
 }
 
 /** Write a call outcome to an HTTP response — the same contract REST clients and agents read. */
-export function writeOutcome(req: MimiRequest, res: MimiResponse, kit: AgentKit, result: RunResult) {
+export function writeOutcome(req: MimiRequest, res: MimiResponse, kit: AgentKit, result: RunResult, actionName = '') {
   const { outcome, caller, rate } = result;
+  const custom = kit.options.formatResponse?.(outcome, { caller, req, action: actionName });
+  if (custom) {
+    for (const [k, v] of Object.entries(custom.headers ?? {})) res.setHeader(k, v);
+    return sendJson(res, custom.status ?? 200, custom.body);
+  }
   if (rate) {
     res.setHeader('RateLimit-Limit', String(rate.limit));
     res.setHeader('RateLimit-Remaining', String(Math.max(0, rate.remaining)));
@@ -120,7 +125,7 @@ export function mountAction(app: MimiApp, kit: AgentKit, action: RegisteredActio
         ...coerceBySchema({ ...(req.params ?? {}) }, json),
       };
       const result = await kit.run(action.name, input, { req, dryRun, idempotencyKey: header(req, 'idempotency-key') }, 'http');
-      writeOutcome(req, res, kit, result);
+      writeOutcome(req, res, kit, result, action.name);
     } catch (err) {
       sendProblem(res, toProblem(err, action.name));
     }
@@ -174,10 +179,10 @@ export function mountSystemRoutes(app: MimiApp, kit: AgentKit) {
 
   app.get(
     `${base}/find`,
-    wrap((req, res) => {
+    wrap(async (req, res) => {
       const q = String(req.query.q ?? '');
       if (!q) return sendProblem(res, new ActionError({ code: 'MISSING_QUERY', status: 400, message: 'Pass ?q=<what you want to do>.', param: 'q' }).toProblem());
-      sendJson(res, 200, { query: q, results: kit.find(q, Math.min(20, Number(req.query.limit) || 5)) });
+      sendJson(res, 200, { query: q, results: await kit.find(q, Math.min(20, Number(req.query.limit) || 5)) });
     }),
   );
 
