@@ -10,30 +10,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
-## [Unreleased] — v2.1.0
+## [2.1.0] — 2026-10-13
 
-> Production-readiness upgrade. All changes are backward-compatible.
+### Added — agent-native layer
+- **Actions** — `agent(app).action(name, spec)`: one definition served as a REST route, an MCP tool (`/mcp`), `/.well-known/agent.json`, `/llms.txt` and the OpenAPI registry
+- Dry-run plans (`ctx.effect`), idempotency keys + agent auto-dedupe, human approval gates, RFC 9457 errors with `fix`/`suggest`/`example`, receipts and undo
+- Caller identity (MCP, `X-Agent-Id`, `Signature-Agent`, known agent user-agents), per-agent rate and spend budgets, audit log, agent-DX insights
+- Intent search (`/_agent/find`) and progressive MCP disclosure for large APIs
+- **Plugins** — `ai.use(plugin)` with `setup`, `onRegister`, `beforeCall`, `approval`, `afterCall`, `onEvent`, custom MCP `tools` and `routes`; options `rank`, `agentPatterns`, `formatResponse`, `problemBaseUrl`, `store`, `identify`
+- Built-in plugins: `redact`, `scopes`, `approvalRule`, `requireUndo`, `auditLog`, `cacheReads`
+- `AgentKit` for in-process calls (`kit.call()`) with the same contract
 
-### Performance
-- **URL parsed once per request** — `req.path` and `req.query` now memoize on first access instead of calling `new URL()` on every read. Eliminates ~86k allocations/second under load.
-- **Logger replaced** — winston → pino. 7× faster structured logging, −6 MB RSS per process.
-- **Heavyweight deps moved to peer** — `mongoose`, `sequelize`, `sqlite3`, `bcrypt` are now optional peer dependencies. Applications that don't use database features save 20+ MB RSS per process.
+### Added — core
+- `invalidateToken()` and `setTokenStore()` — JWT revocation with a pluggable store
+- `requestId()` middleware and `logError`; request logs include the request id
+- `mimi()` options: `requestTimeout`, `keepAliveTimeout` (default 65 s), `processErrorHandlers`, `logger`
+- `app.close(callback)` closes every server opened with `app.listen()`
+- `req.id`, `req.app`; `app.use()` accepts routers
 
-### Features
-- `app.setErrorHandler(fn)` — register a global error handler that intercepts all `next(err)` calls before the default 500 response.
-- `app.addHook(name, fn)` — lifecycle hooks at 7 named points: `onRequest`, `preParsing`, `preValidation`, `preHandler`, `onSend`, `onResponse`, `onError`.
-- `app.close([timeoutMs])` — graceful shutdown: stops accepting connections, drains in-flight requests, fires `onClose` hooks.
-- `validate(targets)` — request validation middleware factory. Validates `body`, `params`, `query` against any schema adapter.
-- Built-in **Zod adapter** — `validate({ body: z.object({...}) })` with structured 400 responses.
-- `setAdapter(adapter)` — swap the validation backend (Zod, Valibot, Joi, etc.) globally.
-- `rateLimit(options)` — token-bucket rate limiter with per-IP tracking and `X-RateLimit-*` headers.
-- `RequestContext` — per-request context object (`ctx`) with typed `body`, `params`, `query`, `store`, and response helpers.
-- **Ctx-style handlers** — `app.get('/path', async (ctx) => { ctx.json(...) })` as an alternative to `(req, res, next)`.
+### Fixed
+- TypeScript build error in `application.ts` (server timeout callback typing)
 
-### Developer Experience
-- **vitest** test infrastructure with V8 coverage.
-- All new APIs exported from the main entry point with full TypeScript declarations.
-- Graceful install-hint errors when optional peer deps are missing.
+### Notes
+- `zod` is an optional peer dependency (`>=3.23`); Zod v4 is recommended for the agent layer.
+- No breaking changes.
 
 ---
 

@@ -1,6 +1,6 @@
 {
   "name": "mimi.js",
-  "version": "2.0.5",
+  "version": "2.1.0",
   "description": "The Node.js API framework for humans and AI agents \u2014 Express-compatible, TypeScript-first, MCP built in.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -126,7 +126,8 @@
     "mongoose": ">=8",
     "pino-pretty": ">=11",
     "sequelize": ">=6",
-    "sqlite3": ">=5"
+    "sqlite3": ">=5",
+    "zod": ">=3.23"
   },
   "peerDependenciesMeta": {
     "bcrypt": {
@@ -142,6 +143,9 @@
       "optional": true
     },
     "sqlite3": {
+      "optional": true
+    },
+    "zod": {
       "optional": true
     }
   }

@@ -7,22 +7,30 @@ Full changelog with guides: [iammayank18.github.io/mimi.js/changelog](https://ia
 
 ---
 
-## [Unreleased] — v2.1.0
+## [2.1.0] — 2026-10-13
 
-### Performance
-- URL parsed once per request — eliminates ~86k allocations/second under load
-- winston replaced with pino — 7× faster logging, −6 MB RSS
-- mongoose/sequelize/bcrypt moved to optional peer deps — −20 MB RSS
+### Added — agent-native layer
+- **Actions** — `agent(app).action(name, spec)`: one definition served as a REST route, an MCP tool (`/mcp`), `/.well-known/agent.json`, `/llms.txt` and the OpenAPI registry
+- Dry-run plans (`ctx.effect`), idempotency keys + agent auto-dedupe, human approval gates, RFC 9457 errors with `fix`/`suggest`/`example`, receipts and undo
+- Caller identity (MCP, `X-Agent-Id`, `Signature-Agent`, known agent user-agents), per-agent rate and spend budgets, audit log, agent-DX insights
+- Intent search (`/_agent/find`) and progressive MCP disclosure for large APIs
+- **Plugins** — `ai.use(plugin)` with `setup`, `onRegister`, `beforeCall`, `approval`, `afterCall`, `onEvent`, custom MCP `tools` and `routes`; options `rank`, `agentPatterns`, `formatResponse`, `problemBaseUrl`, `store`, `identify`
+- Built-in plugins: `redact`, `scopes`, `approvalRule`, `requireUndo`, `auditLog`, `cacheReads`
+- `AgentKit` for in-process calls (`kit.call()`) with the same contract
 
-### Features
-- **Agent plugins**: `ai.use(plugin)` with `setup`, `onRegister`, `beforeCall`, `approval`, `afterCall`, `onEvent`, custom MCP `tools` and `routes`; options `rank`, `agentPatterns`, `formatResponse`, `problemBaseUrl`; built-in `redact`, `scopes`, `approvalRule`, `requireUndo`, `auditLog`, `cacheReads`
-- **Agent-native actions** — `agent(app).action(name, spec)`: one definition served as REST, MCP (`/mcp`), `/.well-known/agent.json` and `/llms.txt`, with dry-run plans (`ctx.effect`), idempotency + agent auto-dedupe, human approval gates, RFC 9457 recoverable errors, receipts/undo, per-agent rate & spend budgets, intent search, progressive MCP disclosure, audit log and agent-DX insights
-- `app.setErrorHandler(fn)` — global structured error handler
-- `app.addHook(name, fn)` — 7 lifecycle hooks (onRequest → onClose)
-- `app.close([timeoutMs])` — graceful shutdown with drain
-- `validate(targets)` — request validation middleware (Zod built-in, pluggable)
-- `rateLimit(options)` — token-bucket rate limiter
-- `RequestContext` + ctx-style handlers
+### Added — core
+- `invalidateToken()` and `setTokenStore()` — JWT revocation with a pluggable store
+- `requestId()` middleware and `logError`; request logs include the request id
+- `mimi()` options: `requestTimeout`, `keepAliveTimeout` (default 65 s), `processErrorHandlers`, `logger`
+- `app.close(callback)` closes every server opened with `app.listen()`
+- `req.id`, `req.app`; `app.use()` accepts routers
+
+### Fixed
+- TypeScript build error in `application.ts` (server timeout callback typing)
+
+### Notes
+- `zod` is an optional peer dependency (`>=3.23`); Zod v4 is recommended for the agent layer.
+- No breaking changes.
 
 ---
 
