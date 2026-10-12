@@ -2,14 +2,17 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'mimi.js',
-  description: 'A production-ready Node.js web framework — Express-compatible, TypeScript-first, built for speed.',
+  description: 'The Node.js API framework for humans and AI agents — Express-compatible, MCP built in, with dry-run, approvals and undo for every action.',
   base: '/mimi.js/',
 
   head: [
     ['link', { rel: 'icon', href: 'https://github.com/user-attachments/assets/6bb183ae-7ec1-4da9-95f2-85064f4deda0' }],
-    ['meta', { name: 'theme-color', content: '#646cff' }],
-    ['meta', { property: 'og:title', content: 'mimi.js' }],
-    ['meta', { property: 'og:description', content: 'Production-ready Node.js framework — 4× faster than Express' }],
+    ['meta', { name: 'theme-color', content: '#09090b' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
+    ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap' }],
+    ['meta', { property: 'og:title', content: 'mimi.js — the API framework for humans and AI agents' }],
+    ['meta', { property: 'og:description', content: 'Write an endpoint once. Serve it as REST and an MCP tool, with dry-run plans, human approval, safe retries and undo built in.' }],
   ],
 
   themeConfig: {
@@ -17,7 +20,9 @@ export default defineConfig({
     siteTitle: 'mimi.js',
 
     nav: [
-      { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
+      { text: 'Guide', link: '/guide/getting-started', activeMatch: '^/guide/(?!use-cases|agent-)' },
+      { text: 'Use Cases', link: '/guide/use-cases', activeMatch: '/guide/use-cases' },
+      { text: 'Agents', link: '/guide/agent-native', activeMatch: '/guide/agent-' },
       { text: 'Reference', link: '/reference/api-reference', activeMatch: '/reference/' },
       { text: 'Changelog', link: '/changelog' },
       {
@@ -41,6 +46,7 @@ export default defineConfig({
           text: 'Agent-Native',
           items: [
             { text: 'Actions for humans & agents', link: '/guide/agent-native' },
+            { text: 'Use cases', link: '/guide/use-cases' },
             { text: 'Customising & plugins', link: '/guide/agent-plugins' },
           ],
         },

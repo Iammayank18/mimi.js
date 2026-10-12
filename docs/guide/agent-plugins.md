@@ -128,7 +128,7 @@ export function slackApprovals(webhookUrl: string): AgentPlugin {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          text: `🔔 ${approval.caller.name ?? approval.caller.id} wants to run *${approval.action}*: ${approval.reason}\n` +
+          text: `Approval needed: ${approval.caller.name ?? approval.caller.id} wants to run *${approval.action}*: ${approval.reason}\n` +
                 approval.plan.effects.map((e) => `• ${e.label}`).join('\n'),
         }),
       });
