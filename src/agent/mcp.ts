@@ -105,6 +105,10 @@ export function listTools(kit: AgentKit): Tool[] {
     tools.push(META_TOOLS.check_approval);
   }
   if (actions.some((a) => a.undo)) tools.push(META_TOOLS.undo_action);
+  for (const t of kit.customTools.values()) {
+    const input = t.input && typeof (t.input as any).safeParse === 'function' ? toJSONSchema(t.input as any) : (t.input as Record<string, unknown>) ?? { type: 'object', properties: {} };
+    tools.push({ name: t.name, ...(t.title && { title: t.title }), description: t.description, inputSchema: input, ...(t.annotations && { annotations: t.annotations }) });
+  }
   return tools;
 }
 
@@ -138,7 +142,7 @@ async function callTool(kit: AgentKit, req: MimiRequest, name: string, args: any
   args = args ?? {};
   switch (name) {
     case 'find_actions':
-      return textResult({ results: kit.find(String(args.intent ?? ''), Number(args.limit) || 5) });
+      return textResult({ results: await kit.find(String(args.intent ?? ''), Number(args.limit) || 5) });
     case 'describe_action': {
       const d = kit.describe(String(args.name));
       return d ? textResult(d) : textResult(new ActionError({ code: 'UNKNOWN_ACTION', status: 404, message: `No action "${args.name}".`, fix: 'Use find_actions first.' }).toProblem(), true);
@@ -162,6 +166,24 @@ async function callTool(kit: AgentKit, req: MimiRequest, name: string, args: any
       } catch (err) {
         return textResult(toProblem(err), true);
       }
+    }
+  }
+  const custom = kit.customTools.get(name);
+  if (custom) {
+    const caller = await identifyCaller(req, 'mcp', kit.options);
+    try {
+      let parsed = args;
+      if (custom.input && typeof (custom.input as any).safeParse === 'function') {
+        const r = (custom.input as any).safeParse(args);
+        if (!r.success) {
+          return textResult(new ActionError({ code: 'INVALID_INPUT', status: 422, message: `Invalid input for ${name}.`, fix: r.error.issues.map((i: any) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ') }).toProblem(name), true);
+        }
+        parsed = r.data;
+      }
+      const out = await custom.run(parsed, { caller, req });
+      return textResult(out ?? { ok: true });
+    } catch (err) {
+      return textResult(toProblem(err, name), true);
     }
   }
   if (!kit.actions.has(name) || kit.actions.size > kit.options.maxTools) return undefined;

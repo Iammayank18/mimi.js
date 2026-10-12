@@ -19,7 +19,7 @@ import type { AgentOptions } from './types';
  * approval gates, receipts/undo, per-agent budgets and audit built in.
  */
 export function agent(app: MimiApp, options: AgentOptions = {}): AgentKit {
-  const kit = new AgentKit(options);
+  const kit = new AgentKit(options, false);
 
   kit.onRegister = (action) => {
     mountAction(app, kit, action);
@@ -45,6 +45,9 @@ export function agent(app: MimiApp, options: AgentOptions = {}): AgentKit {
     }) as any);
   }
 
+  kit.attach(app);
+  for (const p of options.plugins ?? []) kit.use(p);
+
   return kit;
 }
 
@@ -54,3 +57,4 @@ export { MemoryStore } from './store';
 export { MCP_VERSIONS } from './mcp';
 export type * from './types';
 export type { RegisteredAction, ActivityEvent } from './kit';
+export { redact, approvalRule, scopes, requireUndo, auditLog, cacheReads } from './plugins';

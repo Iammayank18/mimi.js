@@ -5,6 +5,12 @@ import { describeIssues, fixSentence, toJSONSchema } from './schema';
 import { rank } from './find';
 import { MemoryStore } from './store';
 import type {
+  AgentEvent,
+  AgentKitLike,
+  AgentPlugin,
+  CallInfo,
+  CustomTool,
+  RegisteredAction,
   ActionContext,
   ActionSpec,
   AgentOptions,
@@ -23,13 +29,7 @@ import type {
   Suggestion,
 } from './types';
 
-export interface RegisteredAction extends ActionSpec {
-  name: string;
-  effect: Effect;
-  method: string;
-  path: string;
-  reversible: boolean;
-}
+export type { RegisteredAction } from './types';
 
 export interface RateInfo {
   limit: number;
@@ -55,15 +55,7 @@ interface ActionStats {
   totalMs: number;
 }
 
-export interface ActivityEvent {
-  at: string;
-  action: string;
-  caller: Pick<Caller, 'kind' | 'id' | 'name' | 'via'>;
-  outcome: CallOutcome['status'];
-  code?: string;
-  ms: number;
-  receiptId?: string;
-}
+export type ActivityEvent = Extract<AgentEvent, { type: 'call' }>;
 
 const DAY = 24 * 60 * 60 * 1000;
 const RESERVED = ['_dryRun', '_idempotencyKey', '_approvalId'];
@@ -91,7 +83,7 @@ function parseHttp(spec: string | undefined, name: string, effect: Effect): { me
  * the same contract — validation, policy, budgets, idempotency, approval, dry-run,
  * receipts — no matter whether it arrived over REST, MCP, or in-process.
  */
-export class AgentKit {
+export class AgentKit implements AgentKitLike {
   readonly actions = new Map<string, RegisteredAction>();
   readonly options: Required<Pick<AgentOptions, 'basePath' | 'maxTools' | 'autoDedupeMs' | 'idempotencyTtlMs' | 'approvalTtlMs' | 'undoWindowMs'>> &
     AgentOptions;
@@ -101,8 +93,14 @@ export class AgentKit {
   private approvalIds: string[] = [];
   /** Called after an action is registered (used by the HTTP layer to mount routes). */
   onRegister?: (action: RegisteredAction) => void;
+  /** Plugins in the order they were added. */
+  readonly plugins: AgentPlugin[] = [];
+  /** Extra MCP tools contributed by plugins. */
+  readonly customTools = new Map<string, CustomTool>();
+  private app?: unknown;
+  private pendingRoutes: AgentPlugin[] = [];
 
-  constructor(options: AgentOptions = {}) {
+  constructor(options: AgentOptions = {}, applyPlugins = true) {
     this.options = {
       basePath: '/_agent',
       maxTools: 24,
@@ -113,6 +111,51 @@ export class AgentKit {
       ...options,
     };
     this.store = options.store ?? new MemoryStore();
+    if (applyPlugins) for (const p of options.plugins ?? []) void this.use(p);
+  }
+
+  // ───────────────────────────── plugins ─────────────────────────────
+
+  /** @internal — connect an HTTP app so plugin routes can be mounted. */
+  attach(app: unknown): void {
+    this.app = app;
+    for (const p of this.pendingRoutes.splice(0)) p.routes?.(app, this);
+  }
+
+  /**
+   * Add a plugin. Plugins customise the layer without forking it: hooks around every call,
+   * global approval rules, governance on action definitions, extra MCP tools and routes, event sinks.
+   * Register plugins before actions so `onRegister` sees every action.
+   */
+  use(plugin: AgentPlugin): this {
+    if (!plugin || typeof plugin.name !== 'string') throw new Error('A plugin needs a `name`.');
+    if (this.plugins.some((p) => p.name === plugin.name)) throw new Error(`Plugin "${plugin.name}" is already registered.`);
+    this.plugins.push(plugin);
+    for (const t of plugin.tools ?? []) {
+      if (this.customTools.has(t.name) || this.actions.has(t.name)) throw new Error(`Tool name "${t.name}" is already taken.`);
+      this.customTools.set(t.name, t);
+    }
+    if (plugin.onRegister) for (const a of this.actions.values()) plugin.onRegister(a);
+    if (plugin.routes) {
+      if (this.app) plugin.routes(this.app, this);
+      else this.pendingRoutes.push(plugin);
+    }
+    const r = plugin.setup?.(this);
+    if (r && typeof (r as Promise<void>).catch === 'function') (r as Promise<void>).catch(() => undefined);
+    return this;
+  }
+
+  /** Send an event to every plugin's onEvent. Never throws. */
+  private emit(event: AgentEvent): void {
+    for (const p of this.plugins) {
+      if (!p.onEvent) continue;
+      try {
+        const r = p.onEvent(event);
+        if (r && typeof (r as Promise<void>).catch === 'function') (r as Promise<void>).catch(() => undefined);
+      } catch {
+        /* observers must not break calls */
+      }
+    }
   }
 
   // ───────────────────────────── registry ─────────────────────────────
@@ -135,6 +178,7 @@ export class AgentKit {
       path,
       reversible: spec.reversible ?? typeof spec.undo === 'function',
     };
+    for (const p of this.plugins) p.onRegister?.(registered);
     this.actions.set(name, registered);
     this.onRegister?.(registered);
     return this;
@@ -153,7 +197,7 @@ export class AgentKit {
     const caller = await identifyCaller(opts.req, via, this.options, opts.caller);
     const action = this.actions.get(name);
     if (!action) {
-      const near = this.find(name, 3).map((r) => ({ action: r.name, why: r.description }));
+      const near = (await this.find(name, 3)).map((r) => ({ action: r.name, why: r.description }));
       const problem = new ActionError({
         code: 'UNKNOWN_ACTION',
         status: 404,
@@ -164,12 +208,38 @@ export class AgentKit {
       return { outcome: { status: 'error', problem }, caller };
     }
 
-    const result = await this.execute(action, rawInput, opts, caller);
+    const call: CallInfo = { action, input: rawInput, caller, dryRun: !!opts.dryRun, req: opts.req, startedAt: started, state: {} };
+    let result: RunResult;
+    try {
+      result = await this.execute(action, rawInput, opts, caller, false, call);
+    } catch (err) {
+      result = { outcome: { status: 'error', problem: toProblem(err, action.name) }, caller };
+    }
+    for (const p of this.plugins) {
+      if (!p.afterCall) continue;
+      try {
+        const replaced = await p.afterCall(call, result.outcome);
+        if (replaced) result = { ...result, outcome: replaced };
+      } catch (err) {
+        result = { ...result, outcome: { status: 'error', problem: toProblem(err, action.name) } };
+      }
+    }
+    if (result.outcome.status === 'error' && this.options.problemBaseUrl) {
+      const pr = result.outcome.problem;
+      pr.type = this.options.problemBaseUrl.replace(/\/?$/, '/') + pr.code.toLowerCase().replace(/_/g, '-');
+    }
     this.record(action, caller, result.outcome, Date.now() - started);
     return result;
   }
 
-  private async execute(action: RegisteredAction, rawInput: unknown, opts: CallOptions, caller: Caller, bypassApproval = false): Promise<RunResult> {
+  private async execute(
+    action: RegisteredAction,
+    rawInput: unknown,
+    opts: CallOptions,
+    caller: Caller,
+    bypassApproval = false,
+    call?: CallInfo,
+  ): Promise<RunResult> {
     const fail = (p: Problem): RunResult => ({ outcome: { status: 'error', problem: p }, caller });
 
     // 1. Policy — who may call
@@ -214,6 +284,20 @@ export class AgentKit {
       input = parsed.data;
     }
 
+    // 2b. Plugins: beforeCall (skipped when executing an already-approved call)
+    if (call) {
+      call.input = input;
+      call.dryRun = dryRun;
+      if (!bypassApproval) {
+        for (const p of this.plugins) {
+          if (!p.beforeCall) continue;
+          const early = await p.beforeCall(call);
+          if (early) return { outcome: early, caller };
+        }
+        input = call.input;
+      }
+    }
+
     // 3. Rate budget (agents only)
     const rule = this.budgetFor(caller);
     let rate: RateInfo | undefined;
@@ -242,6 +326,17 @@ export class AgentKit {
       if (!approvalReason && action.approval !== undefined) {
         const a = typeof action.approval === 'function' ? await action.approval(input as any, { caller }) : action.approval;
         if (a) approvalReason = typeof a === 'string' ? a : 'This action requires human approval.';
+      }
+      if (!approvalReason) {
+        const info: CallInfo = call ?? { action, input, caller, dryRun, req: opts.req, startedAt: Date.now(), state: {} };
+        for (const p of this.plugins) {
+          if (!p.approval) continue;
+          const reason = await p.approval(info);
+          if (reason) {
+            approvalReason = reason;
+            break;
+          }
+        }
       }
       if (!approvalReason && caller.kind === 'agent' && cost > 0 && rule?.spendPerDay !== undefined) {
         const spent = await this.spentToday(caller.id);
@@ -450,6 +545,7 @@ export class AgentKit {
     this.approvalIds.push(rec.id);
     if (this.approvalIds.length > 1000) this.approvalIds.shift();
     this.bump(action.name).approvalsRequested++;
+    this.emit({ type: 'approval.requested', at: rec.createdAt, approval: rec });
     try {
       await this.options.onApprovalRequested?.(rec);
     } catch {
@@ -491,6 +587,7 @@ export class AgentKit {
     rec.decidedBy = by;
     rec.decidedAt = new Date().toISOString();
     await this.store.set(`approval:${id}`, rec, DAY);
+    this.emit({ type: 'approval.decided', at: rec.decidedAt, approval: rec, decision: 'approved' });
 
     const action = this.actions.get(rec.action)!;
     const started = Date.now();
@@ -517,6 +614,7 @@ export class AgentKit {
     rec.decidedAt = new Date().toISOString();
     if (note) rec.error = { note };
     await this.store.set(`approval:${id}`, rec, DAY);
+    this.emit({ type: 'approval.decided', at: rec.decidedAt, approval: rec, decision: 'rejected' });
     return this.getApproval(id);
   }
 
@@ -542,7 +640,8 @@ export class AgentKit {
     r.undone = { at: new Date().toISOString(), by: `${by.kind}:${by.id}` };
     await this.store.set(`receipt:${id}`, r, 7 * DAY);
     if (r.caller.kind === 'agent' && r.cost > 0) await this.addSpend(r.caller.id, -r.cost);
-    this.log({ at: r.undone.at, action: `${r.action}.undo`, caller: by, outcome: 'ok', ms: 0, receiptId: id });
+    this.log({ type: 'call', at: r.undone.at, action: `${r.action}.undo`, caller: { kind: by.kind, id: by.id, name: by.name, via: by.via }, outcome: 'ok', ms: 0, receiptId: id });
+    this.emit({ type: 'undo', at: r.undone.at, receipt: r, by: { kind: by.kind, id: by.id } });
     return { undone: true, receipt: r, result };
   }
 
@@ -578,7 +677,16 @@ export class AgentKit {
 
   // ───────────────────────────── discovery ─────────────────────────────
 
-  find(query: string, limit = 5) {
+  /** Intent search. Uses the `rank` option when provided, otherwise built-in BM25. */
+  async find(query: string, limit = 5) {
+    const shape = (name: string, score: number) => {
+      const a = this.actions.get(name)!;
+      return { name: a.name, score, description: a.description, effect: a.effect, http: `${a.method} ${a.path}` };
+    };
+    if (this.options.rank) {
+      const ranked = await this.options.rank(query, [...this.actions.values()], limit);
+      return ranked.filter((r) => this.actions.has(r.name)).slice(0, limit).map((r) => shape(r.name, r.score));
+    }
     const docs = [...this.actions.values()].map((a) => ({
       id: a.name,
       text: [a.name, a.name, a.description, a.when ?? '', (a.tags ?? []).join(' '), Object.keys(toJSONSchema(a.input).properties ?? {}).join(' ')].join(' '),
@@ -636,6 +744,7 @@ export class AgentKit {
     if (outcome.status === 'dry_run') s.dryRuns++;
     if (outcome.status === 'error') s.errors[outcome.problem.code] = (s.errors[outcome.problem.code] ?? 0) + 1;
     this.log({
+      type: 'call',
       at: new Date().toISOString(),
       action: action.name,
       caller: { kind: caller.kind, id: caller.id, name: caller.name, via: caller.via },
@@ -649,6 +758,7 @@ export class AgentKit {
   private log(e: ActivityEvent) {
     this.activityLog.push(e);
     if (this.activityLog.length > 1000) this.activityLog.shift();
+    this.emit(e);
   }
 
   activity(filter: { agent?: string; action?: string; limit?: number } = {}): ActivityEvent[] {

@@ -165,6 +165,112 @@ export interface AgentOptions {
   onApprovalRequested?: (approval: ApprovalRecord) => void | Promise<void>;
   /** Pluggable storage (idempotency, approvals, receipts, budgets). Default in-memory. */
   store?: KVStore;
+
+  // ── customisation ───────────────────────────────────────────────
+  /** Plugins applied in order. Same as calling `ai.use(plugin)` for each. */
+  plugins?: AgentPlugin[];
+  /** Replace intent search (e.g. with embeddings or a vector DB). */
+  rank?: (query: string, actions: RegisteredAction[], limit: number) => RankResult[] | Promise<RankResult[]>;
+  /** Extra User-Agent patterns to recognise as agents, checked before the built-in list. */
+  agentPatterns?: Array<[RegExp, string]>;
+  /** Fully control the HTTP response for an outcome. Return undefined to use the default shape. */
+  formatResponse?: (outcome: CallOutcome, ctx: { caller: Caller; req: MimiRequest; action: string }) => FormattedResponse | undefined;
+  /** Base URL for problem `type` links, e.g. "https://api.acme.com/errors/". */
+  problemBaseUrl?: string;
+}
+
+export interface RankResult {
+  name: string;
+  score: number;
+}
+
+export interface FormattedResponse {
+  status?: number;
+  headers?: Record<string, string>;
+  body: unknown;
+}
+
+/** A registered action: the spec plus resolved defaults. */
+export interface RegisteredAction extends ActionSpec {
+  name: string;
+  effect: Effect;
+  method: string;
+  path: string;
+  reversible: boolean;
+}
+
+/** What plugins see about a call. `state` is scratch space shared across one call's hooks. */
+export interface CallInfo {
+  action: RegisteredAction;
+  /** Validated input (plugins may replace it in beforeCall). */
+  input: unknown;
+  caller: Caller;
+  dryRun: boolean;
+  req?: MimiRequest;
+  startedAt: number;
+  state: Record<string, unknown>;
+}
+
+export type AgentEvent =
+  | { type: 'call'; at: string; action: string; caller: Pick<Caller, 'kind' | 'id' | 'name' | 'via'>; outcome: CallOutcome['status']; code?: string; ms: number; receiptId?: string }
+  | { type: 'approval.requested'; at: string; approval: ApprovalRecord }
+  | { type: 'approval.decided'; at: string; approval: ApprovalRecord; decision: 'approved' | 'rejected' }
+  | { type: 'undo'; at: string; receipt: Receipt; by: Pick<Caller, 'kind' | 'id'> };
+
+export interface ToolContext {
+  caller: Caller;
+  req?: MimiRequest;
+}
+
+/** An extra MCP tool contributed by a plugin (not an action — no REST route, no contract). */
+export interface CustomTool {
+  name: string;
+  title?: string;
+  description: string;
+  /** Zod schema or plain JSON Schema object. */
+  input?: SchemaLike | Record<string, unknown>;
+  annotations?: Record<string, unknown>;
+  run(args: any, ctx: ToolContext): unknown | Promise<unknown>;
+}
+
+/**
+ * A plugin customises the agent layer without forking it. Every field is optional.
+ *
+ * Order of hooks for one call:
+ *   validate → beforeCall → (policy, budgets) → approval → run/plan → afterCall → onEvent
+ */
+export interface AgentPlugin {
+  name: string;
+  /** Runs once when the plugin is added. Plugins may register their own actions here. */
+  setup?(kit: AgentKitLike): void | Promise<void>;
+  /** Inspect or change every action definition. Throw to reject an action (governance). */
+  onRegister?(action: RegisteredAction): void;
+  /**
+   * Runs after validation, before policies and execution.
+   * Change `call.input`, stash data in `call.state`, throw `ActionError` to reject,
+   * or return an outcome to short-circuit (e.g. serve from cache).
+   */
+  beforeCall?(call: CallInfo): void | CallOutcome | Promise<void | CallOutcome>;
+  /** Add a global approval rule. Return a reason string to require human approval. */
+  approval?(call: CallInfo): string | false | undefined | Promise<string | false | undefined>;
+  /** Inspect or replace the outcome (redact data, add next steps, translate errors). */
+  afterCall?(call: CallInfo, outcome: CallOutcome): void | CallOutcome | Promise<void | CallOutcome>;
+  /** Observe everything: calls, approvals, undos. Errors here never affect the call. */
+  onEvent?(event: AgentEvent): void | Promise<void>;
+  /** Extra MCP tools. */
+  tools?: CustomTool[];
+  /** Mount extra HTTP routes (dashboards, webhooks, health checks). */
+  routes?(app: any, kit: AgentKitLike): void;
+}
+
+/** The subset of AgentKit plugins can rely on. */
+export interface AgentKitLike {
+  readonly actions: ReadonlyMap<string, RegisteredAction>;
+  readonly options: AgentOptions;
+  readonly store: KVStore;
+  action<I = any, O = any>(name: string, spec: ActionSpec<I, O>): unknown;
+  call(name: string, input: unknown, opts?: CallOptions): Promise<CallOutcome>;
+  find(query: string, limit?: number): Promise<Array<{ name: string; score: number; description: string; effect: Effect; http: string }>>;
 }
 
 export interface KVStore {

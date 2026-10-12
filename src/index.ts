@@ -65,6 +65,7 @@ export type {
 
 // ── Agent-native layer ──────────────────────────────────────────────
 export { agent, AgentKit, ActionError, MemoryStore, MCP_VERSIONS } from './agent';
+export { redact, approvalRule, scopes, requireUndo, auditLog, cacheReads } from './agent';
 export type {
   ActionSpec,
   ActionContext,
@@ -78,4 +79,9 @@ export type {
   Receipt,
   Suggestion,
   ApprovalRecord,
+  AgentPlugin,
+  AgentEvent,
+  CallInfo,
+  CustomTool,
+  RegisteredAction,
 } from './agent';
