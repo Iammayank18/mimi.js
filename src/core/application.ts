@@ -86,7 +86,8 @@ export function mimi(options?: MimiOptions): MimiApp {
 
     // Per-request socket idle timeout
     if (options?.requestTimeout) {
-      server.setTimeout(options.requestTimeout, (socket) => {
+      server.setTimeout(options.requestTimeout);
+      server.on('timeout', (socket: import('net').Socket) => {
         socket.destroy();
       });
     }
